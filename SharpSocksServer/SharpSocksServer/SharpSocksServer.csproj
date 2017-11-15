@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{2F43992E-5703-4420-AD0B-17CB7D89C956}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SharpSocksServer</RootNamespace>
+    <AssemblyName>SharpSocksServer</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\Binaries\SharpSocksServerDLL\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Management.Automation" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Source\Common\Encryption\DebugSimpleEncryptor.cs" />
+    <Compile Include="Source\Common\Encryption\EncryptionHelper.cs" />
+    <Compile Include="Source\Common\Encryption\IEncryptionHelper.cs" />
+    <Compile Include="Source\Common\Host\IPv4Tools.cs" />
+    <Compile Include="Source\ImplantCommsHTTPServer\Classes\HTTPAsyncListener.cs" />
+    <Compile Include="Source\ImplantCommsHTTPServer\Classes\Listener.cs" />
+    <Compile Include="Source\ImplantCommsHTTPServer\Classes\ProcessEncryptedC2Request.cs" />
+    <Compile Include="Source\ImplantCommsHTTPServer\Constants\ListenerStatus.cs" />
+    <Compile Include="Source\ImplantCommsHTTPServer\Interfaces\IImplantSockComms.cs" />
+    <Compile Include="Source\ImplantCommsHTTPServer\Interfaces\IProcessRequest.cs" />
+    <Compile Include="Source\ImplantCommsHTTPServer\Interfaces\IServiceController.cs" />
+    <Compile Include="Source\ImplantCommsHTTPServer\Interfaces\ISocksImplantComms.cs" />
+    <Compile Include="Source\Integration\PSCreateSocksServer.cs" />
+    <Compile Include="Source\Output\Interfaces\ILogOutput.cs" />
+    <Compile Include="Source\ServerComms\DebugConsoleOutput.cs" />
+    <Compile Include="Source\ServerComms\FileDebugServerComms.cs" />
+    <Compile Include="Source\SharpSocksServer\Classes\SharpSocksServerController.cs" />
+    <Compile Include="Source\SocksServer\Classes\Protocol\Socks4aServerHeader.cs" />
+    <Compile Include="Source\SocksServer\Classes\Protocol\Socks4ClientHeader.cs" />
+    <Compile Include="Source\SocksServer\Classes\Protocol\Socks4ServerHeader.cs" />
+    <Compile Include="Source\SocksServer\Classes\Server\SocksProxy.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Source\UI\Classes\ConnectionDetails.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
