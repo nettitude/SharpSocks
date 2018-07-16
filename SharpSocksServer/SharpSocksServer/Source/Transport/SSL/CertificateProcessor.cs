@@ -95,10 +95,10 @@ namespace SharpSocksServer.Source.Transport.SSL
                     _serverComms.LogMessage($"No certificate found on {host}:{port}");
                     var certhash = pfx.GetCertHashString();
                     _serverComms.LogMessage($"Importing the default SharpSocks cert {{{certhash}}}");
-                    if (!_netshWrapper.CheckIfCertIsInCAStore(pfx))
+                    if (!_netshWrapper.CheckIfCertIsInLMStore(pfx))
                     {
                         _serverComms.LogMessage($"Cert with hash {{{certhash}}} is not in the CA store adding now");
-                        if (!_netshWrapper.ImportCertIntoCAStore(pfx))
+                        if (!_netshWrapper.ImportCertIntoLMStore(pfx))
                             throw new Exception($"Unable to import Certificate with hash {{{certhash}}} into CAStore)");
                     }
                     if (_netshWrapper.AddCertificateToIPPort(host, port, certhash))

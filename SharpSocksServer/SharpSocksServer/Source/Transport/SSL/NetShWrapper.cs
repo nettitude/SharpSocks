@@ -17,7 +17,7 @@ namespace SharpSocksServer.Source.Transport.SSL
         const string CERTFILENOTFOUNDERROR = "The system cannot find the file specified.";
         const string PARAMISINCORRECTERROR = "The parameter is incorrect.";
 
-        public bool CheckIfCertIsInCAStore(X509Certificate2 x509cert)
+        public bool CheckIfCertIsInLMStore(X509Certificate2 x509cert)
         {
             X509Store store = null;
             try
@@ -44,12 +44,12 @@ namespace SharpSocksServer.Source.Transport.SSL
         }
 
 
-        public bool ImportCertIntoCAStore(X509Certificate2 x509cert)
+        public bool ImportCertIntoLMStore(X509Certificate2 x509cert)
         {
             X509Store store = null;
             try
             {
-                store = new X509Store(StoreName.CertificateAuthority, StoreLocation.CurrentUser);
+                store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
                 store.Open(OpenFlags.ReadWrite);
                 store.Add(x509cert);
                 return true;
@@ -66,12 +66,12 @@ namespace SharpSocksServer.Source.Transport.SSL
             }
         }
 
-        public bool RemoveCertFromCAStore(X509Certificate2 x509cert)
+        public bool RemoveCertFromLMStore(X509Certificate2 x509cert)
         {
             System.Security.Cryptography.X509Certificates.X509Store store = null;
             try
             {
-                store = new X509Store(StoreName.CertificateAuthority,StoreLocation.CurrentUser);
+                store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
                 store.Open(OpenFlags.ReadWrite);
                 store.Remove(x509cert);
                 return true;
