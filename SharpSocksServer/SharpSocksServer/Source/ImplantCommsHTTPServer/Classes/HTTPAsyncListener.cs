@@ -35,17 +35,11 @@ namespace SocksTunnel.Classes
         {
             var certProc = new CertificateProcessor(ServerComms);
             _listener = new System.Net.HttpListener();
-            X509Certificate2 defaultCert = null; 
+            
 
             foreach (string s in prefixes.Keys)
             {
-                if (null == prefixes[s])
-                { // If the certificate is null then use default
-                    if (null == defaultCert)
-                        defaultCert = GetDefaultSelfSignedCertFromResource();
-                    ServerComms.LogMessage($"No cert specified for {s} unless already bound will use the default");
-                }
-                certProc.AddCertificateToHost(s, defaultCert);
+                certProc.AddCertificateToHost(s, prefixes[s]);
                 _listener.Prefixes.Add(s);
             }
             _listener.Start();

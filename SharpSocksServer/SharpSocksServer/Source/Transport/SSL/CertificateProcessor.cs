@@ -3,10 +3,9 @@ using SharpSocksServer.Source.Helper.IP;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace SharpSocksServer.Source.Transport.SSL
 {
@@ -17,6 +16,8 @@ namespace SharpSocksServer.Source.Transport.SSL
         static object _locker = new object();
         static IPTools _ipTools;
         static NetshWrapper _netshWrapper;
+        X509Certificate2 defaultCert = null;
+        
         public CertificateProcessor(ILogOutput scomms)
         {
             if(null == _serverComms)
@@ -31,6 +32,27 @@ namespace SharpSocksServer.Source.Transport.SSL
                     }
                 }
             }
+        }
+
+        X509Certificate2 GetDefaultSelfSignedCertFromResource()
+        {
+            var currasm = Assembly.GetExecutingAssembly();
+            var pfxcmp = SharpSocks.host2cert_pfx;
+            X509Certificate2 x5092 = null;
+
+            using (var pfxcmpbts = new System.IO.MemoryStream(pfxcmp))
+            using (var decompressedCert = new System.IO.MemoryStream())
+            {
+                using (var decompressionStream = new System.IO.Compression.DeflateStream(pfxcmpbts, System.IO.Compression.CompressionMode.Decompress))
+                {
+                    decompressionStream.CopyTo(decompressedCert);
+                    decompressionStream.Close();
+                    var sc = new System.Security.SecureString();
+                    "SharpSocksKey".ToCharArray().ToList().ForEach(x => { sc.AppendChar(x); });
+                    x5092 = new X509Certificate2(decompressedCert.ToArray(), sc);
+                }
+            }
+            return x5092;
         }
 
         public bool AddCertificateToHost(String strUri, X509Certificate2 pfx)
@@ -80,6 +102,12 @@ namespace SharpSocksServer.Source.Transport.SSL
             
             if (ssl)
             {
+                if (null == pfx && null == defaultCert)
+                {
+                    pfx = defaultCert = GetDefaultSelfSignedCertFromResource();
+                    _serverComms.LogMessage($"No cert specified for {host} unless already bound will use the default");
+                }
+                    
                 var hdrs = new Dictionary<String, String>();
                 if (_netshWrapper.CheckIfCertBoundToPort(host, port, ref hdrs))
                 {
