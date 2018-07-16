@@ -15,7 +15,7 @@ namespace SocksProxy.Classes.Integration
     public static class PoshCreateProxy
     {
         
-        public static SocksController CreateSocksController(Uri serverUri, String commandChannelId, String HostHeader, String userAgent, SecureString key, List<String> urlPaths, String sessionCookieName, String payloadCookieName, IWebProxy wbProxy = null, short beaconTime = 5000, IImplantLog implantcomms = null, bool sslFullValidation = false)
+        public static SocksController CreateSocksController(Uri serverUri, String commandChannelId, String HostHeader, String userAgent, SecureString key, List<String> urlPaths, String sessionCookieName, String payloadCookieName, IWebProxy wbProxy = null, short beaconTime = 5000, IImplantLog implantcomms = null, bool insecureSSL = true)
         {
 
             IImplantLog icomms = implantcomms ?? new PoshDefaultImplantComms();
@@ -35,7 +35,7 @@ namespace SocksProxy.Classes.Integration
                 //By Default SSL Validation is disabled this is to aid intitial testing 
                 //of the deployed infrastructure before a Production Release. 
                 //It is reccomended that this is enabled before deploying to a full Scenario.
-                SSLFullValidation = sslFullValidation
+                InsecureSSL = insecureSSL
             };
 
             if (null == key)

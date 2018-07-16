@@ -6,7 +6,7 @@ namespace SocksProxy.Classes.Extensions
     public class WebClientEx : WebClient
     {
         readonly string DEFAULTUSERAGENT = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36";
-        bool _sslFullValidation;
+        bool _InsecureSSL;
         String frontingDomain;
         public bool AutoRedirect { get; set; }
         public HttpStatusCode StatusCode { get; set; }
@@ -28,24 +28,24 @@ namespace SocksProxy.Classes.Extensions
             AutoRedirect = true;
         }
 
-        public WebClientEx(CookieContainer container, bool SSLFullValidation = true)
+        public WebClientEx(CookieContainer container, bool InsecureSSL = true)
         {
             this.container = container;
-            _sslFullValidation = SSLFullValidation;
+            _InsecureSSL = InsecureSSL;
             AutoRedirect = true;
         }
 
-        public WebClientEx(CookieContainer container, String FrontingDomain, bool SSLFullValidation = true)
+        public WebClientEx(CookieContainer container, String FrontingDomain, bool InsecureSSL = true)
         {
             this.container = container;
-            _sslFullValidation = SSLFullValidation;
+            _InsecureSSL = InsecureSSL;
             AutoRedirect = true;
             frontingDomain = FrontingDomain;
         }
 
-        public WebClientEx(bool SSLFullValidation)
+        public WebClientEx(bool InsecureSSL)
         {
-            _sslFullValidation = SSLFullValidation;
+            _InsecureSSL = InsecureSSL;
             AutoRedirect = true;
         }
 
@@ -67,7 +67,7 @@ namespace SocksProxy.Classes.Extensions
             ((HttpWebRequest)r).UserAgent = UserAgent;
 
             var request = r as HttpWebRequest;
-            if (!_sslFullValidation)
+            if (!_InsecureSSL)
                 ServicePointManager.ServerCertificateValidationCallback = (z, y, x, w) => { return true; };
 
             if (request != null)

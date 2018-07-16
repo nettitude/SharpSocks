@@ -69,7 +69,7 @@ namespace ImplantSide.Classes
                 Monitor.Exit(_locker);
             }
         }
-        public bool SSLFullValidation { get; set; }
+        public bool InsecureSSL { get; set; }
         public String ServerHost { get; set; }
         public bool UseProxy { get; set; }
         public String UserAgent { get; set; }

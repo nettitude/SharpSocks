@@ -46,9 +46,9 @@ namespace ImplantSide.Classes.Comms
             var cookies = new CookieContainer();
             WebClientEx wc = null;
             if (!String.IsNullOrWhiteSpace(_config.HostHeader))
-                wc = new WebClientEx(cookies, _config.HostHeader, _config.SSLFullValidation) { UserAgent = _config.UserAgent };
+                wc = new WebClientEx(cookies, _config.HostHeader, _config.InsecureSSL) { UserAgent = _config.UserAgent };
             else
-                wc = new WebClientEx(cookies, _config.SSLFullValidation) { UserAgent = _config.UserAgent };
+                wc = new WebClientEx(cookies, _config.InsecureSSL) { UserAgent = _config.UserAgent };
 
             if (_config.UseProxy)
                 if (null == _config.WebProxy)
