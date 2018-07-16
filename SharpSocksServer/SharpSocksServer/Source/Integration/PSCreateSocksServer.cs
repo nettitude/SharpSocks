@@ -6,12 +6,13 @@ using SocksServer.Classes.Server;
 using SocksTunnel.Classes;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SharpSocksServer.Source.Integration
 {
     public static class PSSocksServer
     {
-        public static SharpSocksServerController CreateSocksController(String ipToListen, String serverUri, String commandChannelId, ushort SocksPort, String EncryptionKey, String SessionCookieName, String PayloadCookieName, ILogOutput logComms)
+        public static SharpSocksServerController CreateSocksController(String ipToListen, String serverUri, X509Certificate2 serverCert, String commandChannelId, ushort SocksPort, String EncryptionKey, String SessionCookieName, String PayloadCookieName, ILogOutput logComms)
         {
             var logOutput = logComms ?? new DebugConsoleOutput();
             var mstr = new SharpSocksServerController() { ServerComms = logComms, WaitOnConnect = true };
@@ -31,8 +32,8 @@ namespace SharpSocksServer.Source.Integration
             //Prefix must end in /
             if (serverUri[serverUri.Length - 1] != '/')
                 serverUri += "/";
-            var httpAsync = new HttpAsyncListener(c2Processor);
-            httpAsync.CreateListener(new List<String>() { serverUri });
+            var httpAsync = new HttpAsyncListener(c2Processor, logOutput);
+            httpAsync.CreateListener(new Dictionary<String, X509Certificate2> { { serverUri, serverCert } });
             logOutput.LogMessage($"C2 HTTP processor listening on {serverUri}");
 
             //Step 3. Start the Socks Proxy

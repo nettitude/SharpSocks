@@ -28,12 +28,13 @@ namespace SharpSocksImplantTestApp
             String key = null;
             short beaconTime = 0;
             bool useProxy = false;
+            bool userDefinedProxy = false;
             var errors = new List<String>();
             var warnings = new List<String>();
 
             var p = new OptionSet() {
                 { "use-proxy","Use proxy server (for system proxy set this and leave -m blank)" , v => useProxy = v != null },
-                { "m=|proxy=", "Proxy Url in format http://<server>:<port> (-p is implied)", v => proxyUrl = v},
+                { "m=|proxy=", "Proxy Url in format http://<server>:<port> (use-proxy is implied)", v => proxyUrl = v},
                 { "u=|username=", "Web proxy username ", v => username = v},
                 { "d=|domain=", "Web proxy domain ", v => domain = v},
                 { "p=|password=", "Web proxy password ", v => password = v},
@@ -99,13 +100,13 @@ namespace SharpSocksImplantTestApp
                         else
                             cred = new NetworkCredential(username, secPassword);
 
-                        wbProxy = new WebProxy(proxyUri, true, new List<String>().ToArray(), cred);
+                        wbProxy = new WebProxy(proxyUri, false, new List<String>().ToArray(), cred);
 
                     }
                     else
-                        wbProxy = new WebProxy(proxyUri, true, new List<String>().ToArray());
+                        wbProxy = new WebProxy(proxyUri, false, new List<String>().ToArray());
 
-                    useProxy = true;
+                    userDefinedProxy = useProxy = true;
                 }
             }
 
@@ -131,7 +132,16 @@ namespace SharpSocksImplantTestApp
                 foreach (var n in key) secKey.AppendChar(n);
             }
             
-            var sock = PoshCreateProxy.CreateSocksController(parsedServerUri, commandChannelId, dfHost, userAgent ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36", secKey, new List<String> {"Upload" }, sessionCookieName ?? "ASP.NET_SessionId", payloadCookieName ?? "__RequestVerificationToken", System.Net.HttpWebRequest.GetSystemWebProxy(), 5000, null);
+            var sock = PoshCreateProxy.CreateSocksController(parsedServerUri, 
+                                                            commandChannelId, 
+                                                            dfHost, 
+                                                            userAgent ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36", 
+                                                            secKey, 
+                                                            new List<String> {"Upload" }, 
+                                                            sessionCookieName ?? "ASP.NET_SessionId", payloadCookieName ?? "__RequestVerificationToken", 
+                                                            (useProxy) ? ((userDefinedProxy) ? wbProxy : System.Net.HttpWebRequest.GetSystemWebProxy()) : null, 
+                                                            5000, 
+                                                            null);
             
             Console.WriteLine("Ready to start cmd loop?");
             Console.ReadLine();

@@ -63,10 +63,7 @@ namespace SocksProxy.Classes.Extensions
 
             ((HttpWebRequest)r).AllowAutoRedirect = AutoRedirect;
             ((HttpWebRequest)r).ServicePoint.Expect100Continue = false;
-
-            if(!String.IsNullOrWhiteSpace(frontingDomain))
-                ((HttpWebRequest)r).Headers["Host"] = frontingDomain;
-
+            
             ((HttpWebRequest)r).UserAgent = UserAgent;
 
             var request = r as HttpWebRequest;

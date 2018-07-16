@@ -3,6 +3,14 @@ using SocksTunnel.Interfaces;
 using System;
 using System.Collections.Generic;
 using SharpSocksServer.Source.ImplantCommsHTTPServer.Interfaces;
+using SharpSocksServer.Source.Transport.SSL;
+using System.Security.Cryptography.X509Certificates;
+using System.Collections;
+using System.Resources;
+using System.Reflection;
+using System.Globalization;
+using System.Linq;
+using System.Linq.Expressions;
 
 namespace SocksTunnel.Classes
 {
@@ -12,9 +20,10 @@ namespace SocksTunnel.Classes
         IProcessRequest _iprocessRequest;
         public ILogOutput ServerComms { get; set; }
         
-        public HttpAsyncListener(IProcessRequest processRequest)
+        public HttpAsyncListener(IProcessRequest processRequest, ILogOutput logOutput)
         {
             _iprocessRequest = processRequest;
+            ServerComms = logOutput;
         }
 
         public void Stop()
@@ -22,16 +31,47 @@ namespace SocksTunnel.Classes
             _listener.Close();
         }
         
-        public void CreateListener(List<string> prefixes)
+        public void CreateListener(Dictionary<String, X509Certificate2> prefixes)
         {
+            var certProc = new CertificateProcessor(ServerComms);
             _listener = new System.Net.HttpListener();
-            foreach (string s in prefixes)
+            X509Certificate2 defaultCert = null; 
+
+            foreach (string s in prefixes.Keys)
             {
+                if (null == prefixes[s])
+                { // If the certificate is null then use default
+                    if (null == defaultCert)
+                        defaultCert = GetDefaultSelfSignedCertFromResource();
+                    ServerComms.LogMessage($"No cert specified for {s} unless already bound will use the default");
+                }
+                certProc.AddCertificateToHost(s, defaultCert);
                 _listener.Prefixes.Add(s);
             }
             _listener.Start();
 
            var result = _listener.BeginGetContext(new AsyncCallback(ListenerCallback), _listener);
+        }
+
+        X509Certificate2 GetDefaultSelfSignedCertFromResource()
+        {
+            var currasm = Assembly.GetExecutingAssembly();
+            var pfxcmp = SharpSocksServer.SharpSocks.host2cert_pfx ;
+            X509Certificate2 x5092 = null;
+            
+            using (var pfxcmpbts = new System.IO.MemoryStream(pfxcmp))
+            using (var decompressedCert = new System.IO.MemoryStream())
+            {
+                using (var decompressionStream = new System.IO.Compression.DeflateStream(pfxcmpbts, System.IO.Compression.CompressionMode.Decompress))
+                {
+                    decompressionStream.CopyTo(decompressedCert);
+                    decompressionStream.Close();
+                    var sc = new System.Security.SecureString();
+                    "SharpSocksKey".ToCharArray().ToList().ForEach(x => { sc.AppendChar(x); });
+                    x5092 = new X509Certificate2(decompressedCert.ToArray(), sc);
+                }
+            }
+            return x5092;
         }
 
         public void ListenerCallback(IAsyncResult result)

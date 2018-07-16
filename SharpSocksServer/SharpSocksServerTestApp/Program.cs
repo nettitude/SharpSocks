@@ -59,9 +59,9 @@ namespace SharpSocksServer
                     commandChannelId = defaultCmdChannel;
             }
 
-            var result = Uri.TryCreate(serverUri, UriKind.Absolute, out Uri parsedServerUri);
-            if (!result)
-                errors.Add($"uri to listen on {serverUri} is not valid");
+           /* var result = Uri.TryCreate(serverUri, UriKind.Absolute, out Uri parsedServerUri);
+            if (!result && )
+                errors.Add($"uri to listen on {serverUri} is not valid");*/
 
             if (String.IsNullOrWhiteSpace(EncryptionKey))
                 errors.Add($"Encryption key is null or blank");
@@ -98,7 +98,7 @@ namespace SharpSocksServer
 
             Console.WriteLine("[x] to quit\r\n");
 
-            PSSocksServer.CreateSocksController(socksIpToListen, serverUri, commandChannelId, socksPort, EncryptionKey, sessionCookieName, payloadCookieName, debugComms);
+            PSSocksServer.CreateSocksController(socksIpToListen, serverUri, null, commandChannelId, socksPort, EncryptionKey, sessionCookieName, payloadCookieName, debugComms);
 
             var str = "";
             while( "x" != (str = Console.ReadLine()))

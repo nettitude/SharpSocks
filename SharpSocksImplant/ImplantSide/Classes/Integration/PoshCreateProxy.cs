@@ -1,4 +1,4 @@
-﻿using Common.Encryption.Debug;
+﻿using Common.Encryption.SimpleEncryptor;
 using ImplantSide.Classes;
 using ImplantSide.Classes.Socks;
 using ImplantSide.Interfaces;
@@ -26,6 +26,7 @@ namespace SocksProxy.Classes.Integration
                 UserAgent = userAgent,
                 CommandServerUI = serverUri,
                 UseProxy = (null != wbProxy),
+                WebProxy = wbProxy,
                 URLPaths = urlPaths,
                 ImplantComms = icomms,
                 HostHeader  = HostHeader,

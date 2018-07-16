@@ -43,10 +43,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SharpSocks.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>SharpSocks.resx</DependentUpon>
+    </Compile>
     <Compile Include="Source\Common\Encryption\DebugSimpleEncryptor.cs" />
     <Compile Include="Source\Common\Encryption\EncryptionHelper.cs" />
     <Compile Include="Source\Common\Encryption\IEncryptionHelper.cs" />
     <Compile Include="Source\Common\Host\IPv4Tools.cs" />
+    <Compile Include="Source\Helper\IP\IPTools.cs" />
     <Compile Include="Source\ImplantCommsHTTPServer\Classes\HTTPAsyncListener.cs" />
     <Compile Include="Source\ImplantCommsHTTPServer\Classes\Listener.cs" />
     <Compile Include="Source\ImplantCommsHTTPServer\Classes\ProcessEncryptedC2Request.cs" />
@@ -65,8 +71,18 @@
     <Compile Include="Source\SocksServer\Classes\Protocol\Socks4ServerHeader.cs" />
     <Compile Include="Source\SocksServer\Classes\Server\SocksProxy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Source\Transport\SSL\CertificateProcessor.cs" />
+    <Compile Include="Source\Transport\SSL\NetShWrapper.cs" />
     <Compile Include="Source\UI\Classes\ConnectionDetails.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="SharpSocks.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>SharpSocks.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\host2cert.pfx.cmp" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

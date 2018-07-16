@@ -42,7 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Classes\Common\Encryption\Debug\DebugSimpleEncryptor.cs" />
+    <Compile Include="Classes\Common\Encryption\SimpleEncryptor\DebugSimpleEncryptor.cs" />
     <Compile Include="Classes\Common\Encryption\EncryptionHelper.cs" />
     <Compile Include="Classes\Common\Encryption\IEncryptionHelper.cs" />
     <Compile Include="Classes\Common\Host\IPv4Tools.cs" />
