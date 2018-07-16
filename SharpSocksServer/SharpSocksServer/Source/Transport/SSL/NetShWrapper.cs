@@ -22,7 +22,7 @@ namespace SharpSocksServer.Source.Transport.SSL
             X509Store store = null;
             try
             {
-                store = new X509Store(StoreName.CertificateAuthority, StoreLocation.CurrentUser);
+                store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
                 store.Open(OpenFlags.ReadWrite);
                 foreach (X509Certificate2 cert in store.Certificates)
                 {
