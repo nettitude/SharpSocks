@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpSocksImplant", "Implan
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpSockslmplantTestApp", "ImplantTestApp\SharpSockslmplantTestApp.csproj", "{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpSocksImplantCore", "SharpSocksImplantCore\SharpSocksImplantCore.csproj", "{51357E31-2822-41D5-9565-E01CA3A3C5C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocksTestAppCore", "SocksTestAppCore\SocksTestAppCore.csproj", "{547C042F-E92E-446D-BC0F-B6A35711730C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51357E31-2822-41D5-9565-E01CA3A3C5C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51357E31-2822-41D5-9565-E01CA3A3C5C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51357E31-2822-41D5-9565-E01CA3A3C5C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51357E31-2822-41D5-9565-E01CA3A3C5C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{547C042F-E92E-446D-BC0F-B6A35711730C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{547C042F-E92E-446D-BC0F-B6A35711730C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{547C042F-E92E-446D-BC0F-B6A35711730C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{547C042F-E92E-446D-BC0F-B6A35711730C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

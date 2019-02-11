@@ -12,39 +12,46 @@ using SharpSocksServer.Source.UI.Classes;
 
 namespace SocksServer.Classes.Server
 {
-    public class SocksProxy
-    {
-        static readonly Int32 HEADERLIMIT = 65535;
-        static readonly Int32 BASEREADTIMEOUT = 500;
-        //These control the timeout settings for reading back from socket
-        static readonly int TOTALSOCKETTIMEOUT = 120000;
-        static readonly ushort SOCKSCONNECTIONTOREADTIMEOUT = 10000;
-        static readonly int SOCKSCONNECTIONTOOPENTIMEOUT = 200000;
-        static readonly ushort TIMEBETWEENREADS = 200;
-        
-        public  static ILogOutput ServerComms { get; set;}
-        public static ISocksImplantComms SocketComms { get; set; }
-        AutoResetEvent TimeoutEvent = new AutoResetEvent(false);
-        AutoResetEvent SocksTimeout = new AutoResetEvent(false);
+	public class SocksProxy
+	{
+		static readonly Int32 HEADERLIMIT = 65535;
+		static readonly Int32 BASEREADTIMEOUT = 500;
+		//These control the timeout settings for reading back from socket
+		static readonly int TOTALSOCKETTIMEOUT = 120000;
+		static readonly ushort SOCKSCONNECTIONTOREADTIMEOUT = 10000;
+		static readonly int SOCKSCONNECTIONTOOPENTIMEOUT = 200000;
+		static readonly ushort TIMEBETWEENREADS = 200;
+		public UInt64 Counter { get { return _instCounter; } }
+		static UInt64 _nternalCounter = 0;
+		UInt64 _instCounter = 0;
+		static readonly object intlocker = new object();
+		public static ILogOutput ServerComms { get; set; }
+		public static ISocksImplantComms SocketComms { get; set; }
+		AutoResetEvent TimeoutEvent = new AutoResetEvent(false);
+		AutoResetEvent SocksTimeout = new AutoResetEvent(false);
+		readonly object _shutdownLocker = new object();
+		int CurrentlyReading = 0;
+		String _targetHost;
+		ushort _targetPort;
+		String status = "closed";
+		Int32 _dataSent = 0;
+		Int32 _dataRecv = 0;
+		DateTime? LastUpdateTime = null;
+		int timeout = BASEREADTIMEOUT;
+		String _targetId = null;
+		bool ShutdownRecieved = false;
+		bool _waitOnConnect = false;
+		bool _open = false;
 
-        object _shutdownLocker = new object();
-        int CurrentlyReading = 0;
-        String _targetHost;
-        ushort _targetPort;
-        String status = "closed";
-        Int32 _dataSent = 0;
-        Int32 _dataRecv = 0;
-        DateTime? LastUpdateTime = null;
-        int timeout = BASEREADTIMEOUT;
-        String _targetId = null;
-        bool ShutdownRecieved = false;
-        bool _waitOnConnect = false;
-        bool _open = false;
+		TcpClient _tc;
+		static Dictionary<String, SocksProxy> mapTargetIdToSocksInstance = new Dictionary<string, SocksProxy>();
 
-        TcpClient _tc;
-        static Dictionary<String, SocksProxy> mapTargetIdToSocksInstance = new Dictionary<string, SocksProxy>();
-       
-        public static List<ConnectionDetails> ConnectionDetails
+		public SocksProxy()
+		{
+			lock (intlocker) { _instCounter  = ++_nternalCounter;  }
+		}
+
+		public static List<ConnectionDetails> ConnectionDetails
         {
             get
             {
@@ -53,15 +60,35 @@ namespace SocksServer.Classes.Server
                         HostPort = $"{mapTargetIdToSocksInstance[x]._targetPort}:{mapTargetIdToSocksInstance[x]._targetPort}",
                         DataRecv = mapTargetIdToSocksInstance[x]._dataRecv,
                         DataSent = mapTargetIdToSocksInstance[x]._dataSent,
-                        Id  = mapTargetIdToSocksInstance[x]._targetId,
-                        Status = mapTargetIdToSocksInstance[x].status,
+                        TargetId  = mapTargetIdToSocksInstance[x]._targetId,
+						Id = mapTargetIdToSocksInstance[x].Counter,
+						Status = mapTargetIdToSocksInstance[x].status,
                         UpdateTime = (mapTargetIdToSocksInstance[x].LastUpdateTime.HasValue) ? mapTargetIdToSocksInstance[x].LastUpdateTime.Value.ToShortDateString() : "Never"
                     }
                 ).ToList();
             }
         }
 
-        public static bool ReturnDataCallback(String target, List<byte> payload)
+		public static ConnectionDetails GetDetailsForTargetId(string targetId)
+		{
+			if (mapTargetIdToSocksInstance.ContainsKey(targetId))
+			{
+				var dtls = mapTargetIdToSocksInstance[targetId];
+				return new ConnectionDetails()
+				{
+					Id = dtls.Counter,
+					HostPort = $"{dtls._targetHost}:{dtls._targetPort}",
+					DataRecv = dtls._dataRecv,
+					DataSent = dtls._dataSent,
+					TargetId = dtls._targetId,
+					Status = dtls.status,
+					UpdateTime = (dtls.LastUpdateTime.HasValue) ? dtls.LastUpdateTime.Value.ToShortDateString() : "Never"
+				};
+			}
+			return null;
+		}
+
+		public static bool ReturnDataCallback(String target, List<byte> payload)
         {
             if (ServerComms.IsVerboseOn())
                 ServerComms.LogMessage($"Message has arrived back for {target}");
@@ -103,9 +130,19 @@ namespace SocksServer.Classes.Server
         
         public static void ImplantCalledClose(String targetId)
         {
-            var socksInstance = mapTargetIdToSocksInstance[targetId];
-            socksInstance.ShutdownClient(true);
+			if (mapTargetIdToSocksInstance.ContainsKey(targetId))
+			{
+				var socksInstance = mapTargetIdToSocksInstance[targetId];
+				socksInstance.ShutdownClient(true);
+			}
         }
+
+		public static bool IsSessionOpen(String targetId)
+		{
+			if (mapTargetIdToSocksInstance.ContainsKey(targetId))
+				return mapTargetIdToSocksInstance[targetId].status == "open";
+			return false;
+		}
 
         public static bool IsValidSession(String targetId)
         {
@@ -410,7 +447,7 @@ namespace SocksServer.Classes.Server
                 else
                     _targetHost = new IPAddress(BitConverter.ToUInt32(dstIp, 0)).ToString();
 
-               ServerComms.LogMessage($"Recieved SOCKS message to open port {_targetPort} on {_targetHost}");
+               ServerComms.LogMessage($"SOCKS Request to open {_targetHost}:{_targetPort}");
                 status = "opening";
                 LastUpdateTime = DateTime.Now;
 
@@ -431,7 +468,7 @@ namespace SocksServer.Classes.Server
             else
                 return Socks4ClientHeader.Socks4ClientHeaderStatus.REQUEST_REJECTED_OR_FAILED;
 
-            ServerComms.LogMessage($"Opened SOCKS port {_targetPort} on {_targetHost}, targetid {_targetId}");
+            ServerComms.LogMessage($"Opened SOCKS port {_targetHost}:{_targetPort} targetid {_targetId}");
             return Socks4ClientHeader.Socks4ClientHeaderStatus.REQUEST_GRANTED;
         }
     }

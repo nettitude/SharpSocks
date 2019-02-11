@@ -7,6 +7,7 @@ using SocksTunnel.Classes;
 using SocksServer.Classes.Server;
 using Common.Encryption.Debug;
 using SharpSocksServer.Source.Integration;
+using System.Security.Cryptography;
 
 namespace SharpSocksServer
 {
@@ -64,7 +65,13 @@ namespace SharpSocksServer
                 errors.Add($"uri to listen on {serverUri} is not valid");*/
 
             if (String.IsNullOrWhiteSpace(EncryptionKey))
-                errors.Add($"Encryption key is null or blank");
+			{
+				var aes = AesManaged.Create();
+				aes.GenerateKey();
+				EncryptionKey = System.Convert.ToBase64String(aes.Key);
+				warnings.Add($"Using encryption key {EncryptionKey}");
+			}
+                
 
             if (String.IsNullOrWhiteSpace(socksServerUri))
                 socksServerUri = "*:43334";
@@ -95,8 +102,13 @@ namespace SharpSocksServer
                 p.WriteOptionDescriptions(Console.Out);
                 return;
             }
+			if (warnings.Count > 0)
+			{
+				warnings.ForEach(x => { debugComms.LogMessage(x); });
+				Console.WriteLine("");
+			}
 
-            Console.WriteLine("[x] to quit\r\n");
+				Console.WriteLine("[x] to quit\r\n");
 
             PSSocksServer.CreateSocksController(socksIpToListen, serverUri, null, commandChannelId, socksPort, EncryptionKey, sessionCookieName, payloadCookieName, debugComms);
 

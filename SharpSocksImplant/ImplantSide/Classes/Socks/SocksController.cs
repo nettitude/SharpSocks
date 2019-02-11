@@ -73,9 +73,14 @@ namespace ImplantSide.Classes.Socks
 
         public bool Start()
         {
-            _cmdChannel.StartCommandLoop();
+            _cmdChannel.StartCommandLoop(this);
             return true;
         }
+
+		public void StopProxyComms() //This is used by the command loop controller in case that it dies
+		{
+			_sockLoopctrller.StopAll();
+		}
 
         public void Stop()
         {

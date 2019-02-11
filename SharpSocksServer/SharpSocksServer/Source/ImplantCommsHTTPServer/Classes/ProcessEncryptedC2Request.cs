@@ -14,6 +14,7 @@ using System.Xml.Linq;
 using System.Xml.XPath;
 using SharpSocksServer.ImplantCommsHTTPServer.Interfaces;
 using SharpSocksServer.Source.UI.Classes;
+using SharpSocksServer.Source.ImplantCommsHTTPServer.Classes;
 
 namespace SocksTunnel.Classes
 {
@@ -35,22 +36,23 @@ namespace SocksTunnel.Classes
         object _commandLocker = new Object();
         object _listenerLocker = new Object();
         object _dataTasksLocker = new Object();
+		ManualResetEvent _cmdTaskWaitEvent = new ManualResetEvent(false);
         Dictionary<String, Listener> _listeners = new Dictionary<String, Listener>();
         Queue<XElement> _commandTasks = new Queue<XElement>();
-        Dictionary<String, Queue<List<Byte>>> _dataTasks = new Dictionary<String, Queue<List<Byte>>>();
+        Dictionary<String, DataTask> _dataTasks = new Dictionary<String, DataTask>();
         public ushort CommandLimit { get; set; }
 
-        public EncryptedC2RequestProcessor(IEncryptionHelper encryption, String sessionCookieName, String commandChannel, int commandLimit = 5)
+        public EncryptedC2RequestProcessor(IEncryptionHelper encryption, String sessionCookieName, String commandChannel, ushort commandLimit = 5)
         {
             CmdChannelRunningEvent = new ManualResetEvent(false);
             _encryption = encryption;
             _sessionIdName = sessionCookieName;
             _commandChannel = commandChannel;
-            CommandLimit = 5;
+            CommandLimit = commandLimit;
 
             mapSessionToConnectionDetails.Add(commandChannel, new ConnectionDetails()
             {
-                Id = "CommandChannel",
+                TargetId = "CommandChannel",
                 HostPort = "",
                 Status = (IsCommandChannelConnected) ? "Connected" : "Closed",
                 UpdateTime = "Never",
@@ -149,30 +151,39 @@ namespace SocksTunnel.Classes
             {
                 ServerComms.LogMessage($"ERROR Processing payload data {decryptedSessionId} {ex.Message}");
             }
-
-            if (decryptedSessionId == _commandChannel)
+			ConnectionDetails dtls = null;
+			if (decryptedSessionId == _commandChannel)
             {
                 try
                 {
-                    ProcessCommandChannelTime();
+					var ready = false;
+					Int32 ctr = 0, cmdTasks = 0;
 
-                    if (_commandTasks.Count() > 0)
-                        response = new XElement("Response", new XElement("Tasks", PopQueueCommandTasks())).ToString();
-                    else
-                        response = BuildStandardResponse().ToString();
+					ProcessCommandChannelTime();
 
-                    responseBytes.AddRange(UTF8Encoding.UTF8.GetBytes(response));
+					if (null == uploadedPayload || uploadedPayload.Count() == 0)
+						ServerComms.LogMessage($"Command channel sending {_commandTasks.Count()} tasks ");
+					else
+					{
+						mapSessionToConnectionDetails[_commandChannel].DataRecv += uploadedPayload.Count();
+						if (_commandTasks.Count() > 0)
+							ServerComms.LogMessage($"Command channel payload {uploadedPayload.Count()} bytes, sending {_commandTasks.Count()} tasks ");
+						ProcessCommandChanelImplantMessage(this._encryption.Decrypt(uploadedPayload));
+					}
+
+					lock (_commandLocker) { cmdTasks = _commandTasks.Count(); }
+					if (cmdTasks == 0) while (!(ready = _cmdTaskWaitEvent.WaitOne(1000)) && ctr++ < 40) ;
+					
+					lock (_commandLocker) { cmdTasks = _commandTasks.Count(); }
+					if (cmdTasks > 0)
+						response = new XElement("Response", new XElement("Tasks", PopQueueCommandTasks())).ToString();
+					else
+						response = BuildStandardResponse().ToString();
+					
+					_cmdTaskWaitEvent.Reset();
+
+					responseBytes.AddRange(UTF8Encoding.UTF8.GetBytes(response));
                     mapSessionToConnectionDetails[_commandChannel].DataSent += responseBytes.Count();
-
-                    if (null == uploadedPayload || uploadedPayload.Count() == 0)
-                        ServerComms.LogMessage($"Command channel sending {_commandTasks.Count()} tasks ");
-                    else
-                    {
-                        mapSessionToConnectionDetails[_commandChannel].DataRecv += uploadedPayload.Count();
-                        if(_commandTasks.Count() > 0)
-                            ServerComms.LogMessage($"Command channel payload {uploadedPayload.Count()} bytes, sending {_commandTasks.Count()} tasks ");
-                        ProcessCommandChanelImplantMessage(this._encryption.Decrypt(uploadedPayload));
-                    }
                 }
                 catch(Exception ex)
                 {
@@ -183,7 +194,7 @@ namespace SocksTunnel.Classes
             {
                 try
                 {
-                    if (decryptedStatus == "closed")
+					if (decryptedStatus == "closed")
                     {
                         ServerComms.LogMessage($"Close connection has been called on {decryptedSessionId}");
                         //Implant has called time
@@ -191,8 +202,12 @@ namespace SocksTunnel.Classes
 
                         lock (_dataTasks)
                         {
-                            _dataTasks[decryptedSessionId].Clear();
-                            _dataTasks.Remove(decryptedSessionId);
+							if (_dataTasks.ContainsKey(decryptedSessionId))
+							{
+								_dataTasks[decryptedSessionId].Tasks.Clear();
+								_dataTasks[decryptedSessionId].Wait.Dispose();
+								_dataTasks.Remove(decryptedSessionId);
+							}
                         }
 
                         lock (_listenerLocker)
@@ -208,35 +223,46 @@ namespace SocksTunnel.Classes
                     }
                     else if (SocksProxy.IsValidSession(decryptedSessionId))
                     {
-                        if (null == uploadedPayload || uploadedPayload.Count() == 0)
+						if (!SocksProxy.IsSessionOpen(decryptedSessionId))
+							SocksProxy.NotifyConnection(decryptedSessionId, "open");
+
+						dtls = SocksProxy.GetDetailsForTargetId(decryptedSessionId);
+						if (null == uploadedPayload || uploadedPayload.Count() == 0)
                         {
                             if (ServerComms.IsVerboseOn())
-                                ServerComms.LogMessage($"GET with no payload for {decryptedSessionId}");
+                                ServerComms.LogMessage($"Requesting data for connection {dtls.HostPort}:{dtls.Id}");
                         }
                         else
                         {
-                            ServerComms.LogMessage($"Data for {decryptedSessionId} {uploadedPayload.Count()} bytes sent up");
+                            ServerComms.LogMessage($"[Rx] {dtls.HostPort}:{dtls.Id} {uploadedPayload.Count()} bytes ");
                             SocksProxy.ReturnDataCallback(decryptedSessionId, this._encryption.Decrypt(uploadedPayload));
                         }
                     }
                     else
                     {
                         if (ServerComms.IsVerboseOn())
-                            ServerComms.LogMessage($"The {decryptedSessionId} session id is not valid");
+                            ServerComms.LogMessage($"Session ID {decryptedSessionId} is not valid");
                         ctx.Response.StatusCode = 404;
                         ctx.Response.OutputStream.Close();
                         return;
                     }
 
-                    //TO DO: Thread Sleep is dodgy this should use a wait event based on the data queue filling up
                     var ctr = 0;
-                    var dataQueue = _dataTasks[decryptedSessionId];
-                    while ((dataQueue.Count() == 0 && ctr++ < 10))
-                        Thread.Sleep(1000);
+					var dataQueue = _dataTasks[decryptedSessionId];
+					var ready = false;
+					while (!(ready = dataQueue.Wait.WaitOne(1000)) && ctr++ < 60);
 
-                    if (dataQueue.Count() > 0)
-                        responseBytes.AddRange(dataQueue.Dequeue());
-                }
+					if (ready && dataQueue.Tasks.Count() > 0)
+					{
+						lock (dataQueue.PayloadLocker) { responseBytes.AddRange(dataQueue.Tasks.Dequeue()); }
+						dataQueue.Wait.Reset();
+						if (null != dtls)
+							ServerComms.LogMessage($"[Tx] {dtls.HostPort}:{dtls.Id} {responseBytes.Count()} bytes ");
+					}
+					else
+					if (null != dtls)
+						ServerComms.LogMessage($"[Tx] {dtls.HostPort}:{dtls.Id} nothing to send. TimedOut: {!ready}");
+				}
                 catch(Exception ex)
                 {
                     ServerComms.LogMessage($"ERROR Processing response for connection {decryptedSessionId} {ex.Message}");
@@ -246,10 +272,12 @@ namespace SocksTunnel.Classes
             try
             {
                 ctx.Response.StatusCode = 200;
-                var payload = EncryptPayload(responseBytes);
+				
+				var payload = EncryptPayload(responseBytes);
                 if (null != payload && payload.Count > 0)
                     ctx.Response.OutputStream.Write(payload.ToArray(), 0, payload.Count());
-                ctx.Response.OutputStream.Close();
+
+				ctx.Response.OutputStream.Close();
             }
             catch (Exception ex)
             {
@@ -325,7 +353,7 @@ namespace SocksTunnel.Classes
             AddListener(listenerGuid, listener);
             lock (_dataTasksLocker)
             {
-                _dataTasks.Add(listenerGuid, new Queue<List<byte>>());
+                _dataTasks.Add(listenerGuid, new DataTask());
             }
             QueueCommandTask(createListenerRequest);
 
@@ -364,9 +392,10 @@ namespace SocksTunnel.Classes
             { 
                 if (!_dataTasks.ContainsKey(listenerGuid))
                     return false;
-
-                _dataTasks[listenerGuid].Enqueue(payload);
-            }
+				var dtaTasks = _dataTasks[listenerGuid];
+				lock (dtaTasks.PayloadLocker) { _dataTasks[listenerGuid].Tasks.Enqueue(payload); }
+				dtaTasks.Wait.Set();
+			}
             return true;
         }
 
@@ -381,7 +410,8 @@ namespace SocksTunnel.Classes
             {
                 _commandTasks.Enqueue(task);
             }
-            return true;
+			_cmdTaskWaitEvent.Set();
+			return true;
         }
 
         List<XElement> PopQueueCommandTasks()
@@ -393,7 +423,8 @@ namespace SocksTunnel.Classes
                 while (_commandTasks.Count > 0 && i++ < CommandLimit)
                     lst.Add(_commandTasks.Dequeue());
             }
-            return lst;
+			
+			return lst;
         }
 
         void ProcessCommandChannelTime()

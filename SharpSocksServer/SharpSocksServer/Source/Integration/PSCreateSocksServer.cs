@@ -21,7 +21,7 @@ namespace SharpSocksServer.Source.Integration
 
             //Step 1. Create the HTTP request processor
             //This will parse whatever the implant has sent
-            var c2Processor = new EncryptedC2RequestProcessor(enc, SessionCookieName ?? "ASP.NET_SessionId", commandChannelId)
+            var c2Processor = new EncryptedC2RequestProcessor(enc, SessionCookieName ?? "ASP.NET_SessionId", commandChannelId, 20)
             {
                 ServerComms = logComms,
                 PayloadCookieName = PayloadCookieName ?? "__RequestVerificationToken"
@@ -37,7 +37,6 @@ namespace SharpSocksServer.Source.Integration
             logOutput.LogMessage($"C2 HTTP processor listening on {serverUri}");
 
             //Step 3. Start the Socks Proxy
-            //TO DO: Hardcoded socks IP and Port change this!!!
             mstr.StartSocks(ipToListen, SocksPort, httpAsync, c2Processor.CmdChannelRunningEvent);
 
             return mstr;

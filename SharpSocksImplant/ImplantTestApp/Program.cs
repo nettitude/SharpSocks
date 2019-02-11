@@ -133,15 +133,15 @@ namespace SharpSocksImplantTestApp
             }
             
             var sock = PoshCreateProxy.CreateSocksController(parsedServerUri, 
-                                                            commandChannelId, 
-                                                            dfHost, 
-                                                            userAgent ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36", 
-                                                            secKey, 
-                                                            new List<String> {"Upload" }, 
-                                                            sessionCookieName ?? "ASP.NET_SessionId", payloadCookieName ?? "__RequestVerificationToken", 
-                                                            (useProxy) ? ((userDefinedProxy) ? wbProxy : System.Net.HttpWebRequest.GetSystemWebProxy()) : null, 
-                                                            5000, 
-                                                            null);
+				commandChannelId, 
+				dfHost, 
+				userAgent ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36", 
+				secKey, 
+				new List<String> {"Upload" }, 
+				sessionCookieName ?? "ASP.NET_SessionId", payloadCookieName ?? "__RequestVerificationToken", 
+				(useProxy) ? ((userDefinedProxy) ? wbProxy : System.Net.HttpWebRequest.GetSystemWebProxy()) : null, 
+				200,
+				comms);
             
             Console.WriteLine("Ready to start cmd loop?");
             Console.ReadLine();

