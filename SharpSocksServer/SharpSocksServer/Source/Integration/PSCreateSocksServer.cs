@@ -42,5 +42,11 @@ namespace SharpSocksServer.Source.Integration
             return mstr;
 
         }
-    }
+
+		public static void SetLongPollTimeout(int timeout)
+		{
+			if (SocksProxy.SocketComms is EncryptedC2RequestProcessor c2proc)
+				c2proc.LongPollTimeout = timeout;
+		}
+	}
 }

@@ -115,6 +115,17 @@ namespace SharpSocksServer
             var str = "";
             while( "x" != (str = Console.ReadLine()))
             {
+				if (str.StartsWith("LPoll="))
+				{
+					var splt = str.Split('=');
+					if (splt.Length > 1)
+						if (Int32.TryParse(splt[1], out int result))
+						{
+							PSSocksServer.SetLongPollTimeout(result);
+							continue;
+						}
+					Console.WriteLine("[X] New Long Poll format ");
+				}
             }
         }
 

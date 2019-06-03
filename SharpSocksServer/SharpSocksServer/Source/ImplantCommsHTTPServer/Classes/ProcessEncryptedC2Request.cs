@@ -26,16 +26,23 @@ namespace SocksTunnel.Classes
         public ManualResetEvent CmdChannelRunningEvent { get; set; }
 
         TimeSpan COMMANDCHANNELTIMEOUT = new TimeSpan(0, 2, 0);
+		int _longpolltimeout = 30;
+		public int LongPollTimeout {get{ return _longpolltimeout;} 
+			set { 
+				_longpolltimeout = value;
+				if (ServerComms.IsVerboseOn())
+					ServerComms.LogMessage($"HTTP Long Poll timeout is {value} s");
+			} 
+		}
         public String PayloadCookieName { get; set; }
         String _sessionIdName;
         String _commandChannel;
         DateTime? _lastTimeCommandChannelSeen;
         Dictionary<String, ConnectionDetails> mapSessionToConnectionDetails = new Dictionary<string, ConnectionDetails>();
-
-        object _locker = new Object();
-        object _commandLocker = new Object();
-        object _listenerLocker = new Object();
-        object _dataTasksLocker = new Object();
+		readonly object _locker = new Object();
+		readonly object _commandLocker = new Object();
+		readonly object _listenerLocker = new Object();
+		readonly object _dataTasksLocker = new Object();
 		ManualResetEvent _cmdTaskWaitEvent = new ManualResetEvent(false);
         Dictionary<String, Listener> _listeners = new Dictionary<String, Listener>();
         Queue<XElement> _commandTasks = new Queue<XElement>();
@@ -205,7 +212,8 @@ namespace SocksTunnel.Classes
 							if (_dataTasks.ContainsKey(decryptedSessionId))
 							{
 								_dataTasks[decryptedSessionId].Tasks.Clear();
-								_dataTasks[decryptedSessionId].Wait.Dispose();
+								var wait = _dataTasks[decryptedSessionId].Wait;
+								_dataTasks[decryptedSessionId].DisposeWait();
 								_dataTasks.Remove(decryptedSessionId);
 							}
                         }
@@ -250,11 +258,15 @@ namespace SocksTunnel.Classes
                     var ctr = 0;
 					var dataQueue = _dataTasks[decryptedSessionId];
 					var ready = false;
-					while (!(ready = dataQueue.Wait.WaitOne(1000)) && ctr++ < 60);
+
+					while (null != dataQueue.Wait && !(ready = dataQueue.Wait.WaitOne(1000)) && ctr++ < _longpolltimeout) ;
 
 					if (ready && dataQueue.Tasks.Count() > 0)
 					{
-						lock (dataQueue.PayloadLocker) { responseBytes.AddRange(dataQueue.Tasks.Dequeue()); }
+						lock (dataQueue.PayloadLocker) { 
+							while(dataQueue.Tasks.Count != 0)	
+								responseBytes.AddRange(dataQueue.Tasks.Dequeue()); 
+						}
 						dataQueue.Wait.Reset();
 						if (null != dtls)
 							ServerComms.LogMessage($"[Tx] {dtls.HostPort}:{dtls.Id} {responseBytes.Count()} bytes ");
@@ -298,7 +310,7 @@ namespace SocksTunnel.Classes
                     var sessionId = nodeStatus.Attribute("SessionID").Value;
                     var status = nodeStatus.Value;
                     SocksProxy.NotifyConnection(sessionId, status);
-                    ServerComms.LogMessage($"Status connection {nodeStatus.Attribute("SessionID").Value} is {nodeStatus.Value}");
+                    ServerComms.LogMessage($"Status: connection {nodeStatus.Attribute("SessionID").Value} - {nodeStatus.Value}");
                 }
             });
         }
