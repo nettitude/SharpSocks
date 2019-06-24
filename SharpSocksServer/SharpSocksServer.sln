@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpSocksServerTestApp", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpSocksServer", "SharpSocksServer\SharpSocksServer.csproj", "{2F43992E-5703-4420-AD0B-17CB7D89C956}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpSocksServerCore", "SharpSocksServerCore\SharpSocksServerCore.csproj", "{CA387754-4C5A-4682-82E2-4072D9BBA533}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug - Core|Any CPU = Debug - Core|Any CPU
@@ -31,6 +33,14 @@ Global
 		{2F43992E-5703-4420-AD0B-17CB7D89C956}.Release - Core|Any CPU.Build.0 = Release - Core|Any CPU
 		{2F43992E-5703-4420-AD0B-17CB7D89C956}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F43992E-5703-4420-AD0B-17CB7D89C956}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA387754-4C5A-4682-82E2-4072D9BBA533}.Debug - Core|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA387754-4C5A-4682-82E2-4072D9BBA533}.Debug - Core|Any CPU.Build.0 = Debug|Any CPU
+		{CA387754-4C5A-4682-82E2-4072D9BBA533}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA387754-4C5A-4682-82E2-4072D9BBA533}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA387754-4C5A-4682-82E2-4072D9BBA533}.Release - Core|Any CPU.ActiveCfg = Release|Any CPU
+		{CA387754-4C5A-4682-82E2-4072D9BBA533}.Release - Core|Any CPU.Build.0 = Release|Any CPU
+		{CA387754-4C5A-4682-82E2-4072D9BBA533}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA387754-4C5A-4682-82E2-4072D9BBA533}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

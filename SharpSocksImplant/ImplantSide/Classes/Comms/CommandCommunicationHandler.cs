@@ -1,7 +1,9 @@
 ﻿using Common.Classes.Encryption;
 using ImplantSide.Classes.ErrorHandler;
 using ImplantSide.Classes.Helpers;
+using ImplantSide.Classes.Target;
 using ImplantSide.Interfaces;
+using SharpSocksImplant.Interfaces;
 using SocksProxy.Classes.Extensions;
 using System;
 using System.Collections.Generic;
@@ -30,13 +32,15 @@ namespace ImplantSide.Classes.Comms
             _error = error;
         }
 
-        public List<byte> Send(String sessionPayload, List<byte> payload, out bool commandChannelDead)
+        public List<byte> Send(IExitableTarget target, List<byte> payload, out bool commandChannelDead)
         {
-            return Send(sessionPayload, "nochange", payload, out commandChannelDead);
+            return Send(target, "nochange", payload, out commandChannelDead);
         }
 
-        public List<byte> Send(String sessionPayload, String status, List<byte> payload, out bool commandChannelDead)
+        public List<byte> Send(IExitableTarget target, String status, List<byte> payload, out bool commandChannelDead)
         {
+
+			String sessionPayload = target.TargetId;
 			commandChannelDead = false;
 
 			if (String.IsNullOrWhiteSpace(status))
@@ -75,13 +79,15 @@ namespace ImplantSide.Classes.Comms
                         _error.LogError("Encrypted payload was null, it shouldn't be");
                         if (!InitialConnectionSucceded.HasValue)
                             InitialConnectionSucceded = false;
-                        return null;
+						wc.Dispose();
+						return null;
                     }
                 }
                 catch (Exception ex)
                 {
                     _error.LogError(ex.Message);
-                    return null;
+					wc.Dispose();
+					return null;
                 }
             }
             
@@ -117,10 +123,17 @@ namespace ImplantSide.Classes.Comms
                     if (!InitialConnectionSucceded.HasValue)
                         InitialConnectionSucceded = true;
 
-                    if (null != response && response.Count() > 0)
-                        return _encryption.Decrypt(response);
-                    else
-                        return new List<byte>();
+					if (null != response && response.Count() > 0)
+					{
+						wc.Dispose();
+						return _encryption.Decrypt(response);
+					}
+					else
+					{
+						wc.Dispose();
+						return new List<byte>();
+					}
+                        
                 }
                 catch (System.Net.WebException ex)
                 {
@@ -141,6 +154,7 @@ namespace ImplantSide.Classes.Comms
                         {
                             _error.FailError($"Kept trying but afraid error isn't going away {retryInterval} {ex.Message} {ex.Status.ToString()} {_config.CommandServerUI.ToString()} {errorId.ToString()}");
 							commandChannelDead = true;
+							wc.Dispose();
 							return null;
 						}
                     }
@@ -151,6 +165,7 @@ namespace ImplantSide.Classes.Comms
                             lst.Add("Command channel re-tried connection 5 times giving up");
                             ReportErrorWebException(ex, lst, errorId);
 							commandChannelDead = true;
+							wc.Dispose();
 							return null;
 						}
 						retryRequired = true;
@@ -165,18 +180,20 @@ namespace ImplantSide.Classes.Comms
                         }
                         else
                             _error.LogError(String.Format($"Send to {_config.URL} failed with {ex.Message}"));
+						wc.Dispose();
 						return null;
                     }                       
                 }
-            } while (retryRequired);
+            } while (retryRequired && !target.Exit);
 
             if (!InitialConnectionSucceded.HasValue)
 			{
 				commandChannelDead = true;
 				InitialConnectionSucceded = false;
 			}
-                
-            return null;
+			
+			wc.Dispose();
+			return null;
         }
 
         bool RetryUntilFailure(ref UInt16 retryCount, ref bool retryRequired, ref Int32 retryInterval)

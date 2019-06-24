@@ -1,4 +1,4 @@
-﻿using SharpSocksImplantTestApp.ImplantComms;
+﻿using ImplantSide.Classes.Helpers;
 using NDesk.Options;
 using System.Collections.Generic;
 using System;

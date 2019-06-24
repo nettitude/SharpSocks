@@ -63,8 +63,8 @@ namespace SocksProxy.Classes.Extensions
 
             ((HttpWebRequest)r).AllowAutoRedirect = AutoRedirect;
             ((HttpWebRequest)r).ServicePoint.Expect100Continue = false;
-            
-            ((HttpWebRequest)r).UserAgent = UserAgent;
+			((HttpWebRequest)r).ServicePoint.ConnectionLimit = 150;
+			((HttpWebRequest)r).UserAgent = UserAgent;
 
             var request = r as HttpWebRequest;
             if (!_InsecureSSL)
@@ -86,10 +86,17 @@ namespace SocksProxy.Classes.Extensions
 
         protected override WebResponse GetWebResponse(WebRequest request)
         {
-            var response = (HttpWebResponse)base.GetWebResponse(request);
-            ReadCookies(response);
-            StatusCode = response.StatusCode;
-            return response;
+			try
+			{
+				var response = (HttpWebResponse)base.GetWebResponse(request);
+				ReadCookies(response);
+				StatusCode = response.StatusCode;
+				return response;
+			}
+			catch (Exception ex)
+			{
+				throw ex;
+			}
         }
 
         private void ReadCookies(WebResponse r)

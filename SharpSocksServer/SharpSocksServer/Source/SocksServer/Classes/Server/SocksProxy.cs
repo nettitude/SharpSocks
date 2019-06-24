@@ -167,7 +167,7 @@ namespace SocksServer.Classes.Server
                         if (null != _tc && _tc.Connected)
                             _tc.Close();
 
-                        if (String.IsNullOrWhiteSpace(_targetId) && !implantNotified)
+                        if (!String.IsNullOrWhiteSpace(_targetId) && !implantNotified)
                             SocketComms.CloseTargetConnection(_targetId);
                     }
                 }
@@ -248,6 +248,7 @@ namespace SocksServer.Classes.Server
         {
             public byte[] Buffer = new Byte[HEADERLIMIT];
             public NetworkStream Stream;
+			public AutoResetEvent RecvdData { get; set; }
         }
 
         void StartCommsWithProxyAndImplant(NetworkStream stream)
@@ -259,6 +260,7 @@ namespace SocksServer.Classes.Server
 
             var timeout = 0;
             var timeoutCtr = 0;
+			var wait = new AutoResetEvent(false);
             //Shutdown has been recieved on another thread we outta here
             while (!ShutdownRecieved)
             {
@@ -282,9 +284,9 @@ namespace SocksServer.Classes.Server
                         //Quick check here just in case....
                         if (ShutdownRecieved)
                             return;
-                        var asyncBufferState = new AsyncBufferState() { Stream = stream };
+                        var asyncBufferState = new AsyncBufferState() { Stream = stream, RecvdData = wait };
                         stream.BeginRead(asyncBufferState.Buffer, 0, HEADERLIMIT, ProxySocketReadCallback, asyncBufferState);
-                        return;
+						wait.WaitOne(-1);
                     }
                     catch (Exception ex)
                     {
@@ -296,8 +298,9 @@ namespace SocksServer.Classes.Server
                 if (timeoutCtr > (TOTALSOCKETTIMEOUT / TIMEBETWEENREADS))
                 {
                     //Time out trying to read may as well shutdown the socket
-                    ServerComms.LogError($"Connection closed to {_targetHost}:{_targetPort} after ({TOTALSOCKETTIMEOUT / 1000}s) idle");
-                    ShutdownClient();
+                    ServerComms.LogError($"Connection closed to {_targetHost}:{_targetPort} after ({TOTALSOCKETTIMEOUT / 1000}s) idle. {_targetId}");
+
+					ShutdownClient();
                     return;
                 }
                 timeoutCtr++;
@@ -351,9 +354,10 @@ namespace SocksServer.Classes.Server
                 }
                 else
                 {
-                    //No bytes have been read from the connection 
-                    //Try again and start the thread timeout cycle
-                    TimeoutEvent.WaitOne(timeout);
+					//No bytes have been read from the connection 
+					//Try again and start the thread timeout cycle
+					Interlocked.Decrement(ref CurrentlyReading);
+					TimeoutEvent.WaitOne(timeout);
                     StartCommsWithProxyAndImplant(asyncState.Stream);
                 }
             }
@@ -370,7 +374,8 @@ namespace SocksServer.Classes.Server
                 {
                     ServerComms.LogError($"Connection to {_targetHost}:{_targetPort} has dropped cause {ex.Message}");
                 }
-            }
+				ShutdownClient();
+			}
         }
 
         void WriteResponseBackToClient(List<byte> payload)
@@ -385,16 +390,13 @@ namespace SocksServer.Classes.Server
 					stream.Write(payload.ToArray(), 0, payload.Count);
 					stream.Flush();
 					if (ServerComms.IsVerboseOn())
-					{
 						ServerComms.LogMessage($"Wrote {payload.Count} ");
-				//		if (ServerComms is DebugConsoleOutput dbg)
-					//		dbg.HexDump(payload.ToArray());
-					}
 					StartCommsWithProxyAndImplant(stream);
 				}
 				catch (Exception ex)
 				{
 					ServerComms.LogMessage($"ERROR Writing data back to {ex.Message}");
+					ShutdownClient();
 				}
             }
             else

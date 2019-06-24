@@ -94,7 +94,7 @@ namespace SocksTunnel.Classes
             try
             {
                 sessionCookie = ctx.Request.Cookies[_sessionIdName];
-                if (sessionCookie == null || String.IsNullOrEmpty(sessionCookie.Value))
+                if (String.IsNullOrEmpty(sessionCookie?.Value))
                 {
                     ctx.Response.StatusCode = 401;
                     ctx.Response.Close();
@@ -145,13 +145,8 @@ namespace SocksTunnel.Classes
                     var payloadCookie = ctx.Request.Cookies[PayloadCookieName];
                     //TO DO: Dodgy as hell. Need to make sure this can be tampered/malleable etc 
                     //This could be whenever in the request. Need to sort that out
-                    if (null != payloadCookie)
-                    {
-                        if (!String.IsNullOrWhiteSpace(payloadCookie.Value))
-                        {
-                            uploadedPayload = payloadCookie.Value;
-                        }
-                    }
+                    if (!String.IsNullOrWhiteSpace(payloadCookie?.Value))
+						uploadedPayload = payloadCookie.Value;
                 }
             }
             catch(Exception ex)

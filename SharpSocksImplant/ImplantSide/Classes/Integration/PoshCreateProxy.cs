@@ -17,8 +17,9 @@ namespace SocksProxy.Classes.Integration
         
         public static SocksController CreateSocksController(Uri serverUri, String commandChannelId, String HostHeader, String userAgent, SecureString key, List<String> urlPaths, String sessionCookieName, String payloadCookieName, IWebProxy wbProxy = null, short beaconTime = 5000, IImplantLog implantcomms = null, bool insecureSSL = true)
         {
-
-            IImplantLog icomms = implantcomms ?? new PoshDefaultImplantComms();
+			//Increase the number of possible Remote Connections to the one host
+			ServicePointManager.DefaultConnectionLimit = 150;
+			IImplantLog icomms = implantcomms ?? new PoshDefaultImplantComms();
             var config = new SocksClientConfiguration
             {
                 CommandChannelSessionId = commandChannelId,

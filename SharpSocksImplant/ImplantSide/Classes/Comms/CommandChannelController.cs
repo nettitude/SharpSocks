@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using SocksProxy.Classes.Socks;
 using System.Text;
 using ImplantSide.Interfaces;
+using SharpSocksImplant.Classes.Target;
 
 namespace ImplantSide.Classes.Comms
 {
@@ -88,7 +89,7 @@ namespace ImplantSide.Classes.Comms
                 if (token.IsCancellationRequested)
                     return true;
                 var request = BuildRequestPayload();
-                var response = _cmdCommsHandler.Send(CommandChannelSessionId, UTF8Encoding.UTF8.GetBytes(request.ToString()).ToList(), out bool CommandChannelDead);
+                var response = _cmdCommsHandler.Send(new CmdTarget { TargetId = CommandChannelSessionId, Token = token }, UTF8Encoding.UTF8.GetBytes(request.ToString()).ToList(), out bool CommandChannelDead);
 				
                 if (null == response || response.Count() == 0 || CommandChannelDead)
                 {
@@ -110,8 +111,8 @@ namespace ImplantSide.Classes.Comms
                         xdoc.XPathSelectElements("Response/Tasks/Task").ToList().ForEach(x =>
                         {
                             var nodeCreate = x.XPathSelectElement("CreateListener");
-                            var nodeClose = x.XPathSelectElement("CloseListener");
-                            if (nodeCreate != null)
+                            
+                            if (null != nodeCreate)
                             {
                                 var host = nodeCreate.Attribute("TargetHost").Value;
                                 var strPort = nodeCreate.Attribute("TargetPort").Value;
@@ -126,24 +127,18 @@ namespace ImplantSide.Classes.Comms
                                     QueueListenerStatus(sessionId, "failed");
                                 }
                             }
-                            else if (nodeClose == null)
+							var nodeClose = x.XPathSelectElement("CloseListener");
+                            if (null != nodeClose)
                             {
                                 var sessionId = nodeClose.Attribute("SessionID");
-                                if (null != sessionId)
+                                if (!String.IsNullOrWhiteSpace(sessionId?.Value))
                                 {
-                                    if (!String.IsNullOrWhiteSpace(sessionId.Value))
-                                    {
-                                        _client.Stop(sessionId.Value);
-                                        QueueListenerStatus(sessionId.Value, "closed");
-                                    }
-                                    else
-                                    {
-                                        ImplantComms.LogError($"Close session id message is null");
-                                    }
+                                    _client.Stop(sessionId.Value);
+                                    QueueListenerStatus(sessionId.Value, "closed");
                                 }
+                                else
+									ImplantComms.LogError($"Close session id message is null");  
                             }
-                            else
-                                return;
                         });
                     }
                     //Sleep til we need to beacon again
@@ -151,7 +146,7 @@ namespace ImplantSide.Classes.Comms
                     if (token.IsCancellationRequested)
                         return true;
                 }
-				Timeout.WaitOne(C2Config.CommandBeaconTime);
+				//Timeout.WaitOne(C2Config.CommandBeaconTime);
 			}
             while (!token.IsCancellationRequested);
 			return true;

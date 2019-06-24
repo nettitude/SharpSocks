@@ -56,12 +56,16 @@
     <Compile Include="Classes\Extensions\WebClientEx.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Classes\Helpers\LogToConsole.cs" />
     <Compile Include="Classes\Integration\PoshCreateProxy.cs" />
     <Compile Include="Classes\Integration\PoshDefaultImplantComms.cs" />
     <Compile Include="Classes\Logging\DebugFileLogging.cs" />
     <Compile Include="Classes\Socks\SocksController.cs" />
     <Compile Include="Classes\Socks\SocksLoopController.cs" />
+    <Compile Include="Classes\Socks\SocksSocketReader.cs" />
+    <Compile Include="Classes\Target\CmdTarget.cs" />
     <Compile Include="Classes\Target\TargetInfo.cs" />
+    <Compile Include="Interfaces\IExitableTarget.cs" />
     <Compile Include="Interfaces\IImplantLog.cs" />
     <Compile Include="Interfaces\IInternalErrorHandler.cs" />
     <Compile Include="Classes\Helpers\WebExceptionAnalyzer.cs" />
