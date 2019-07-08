@@ -118,8 +118,7 @@ namespace SocksTunnel.Classes
                 var decryptedSessionStatus = UTF8Encoding.UTF8.GetString(decr.ToArray()).Split(':');
                 decryptedSessionId = decryptedSessionStatus[0];
                 decryptedStatus = decryptedSessionStatus[1];
-				Console.WriteLine($"{decryptedSessionStatus[0]} {decryptedSessionStatus[1]}");
-
+			
 				if (String.IsNullOrWhiteSpace(decryptedSessionId))
                     throw new Exception($"Session cookie decrypted to nothing or whitespace");
             }
