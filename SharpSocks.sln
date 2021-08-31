@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31729.503
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpSocksImplant", "SharpSocksImplant\SharpSocksImplant.csproj", "{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpSocksServer", "SharpSocksServer\SharpSocksServer.csproj", "{86D10A34-C374-4DE4-8E12-490E5E65DDFF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Implant", "Implant", "{7609AA60-9A82-47F8-81B3-6F8A27C7BD45}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Server", "Server", "{9BD7DAD8-4485-4CFD-B17F-7F1DF9C598F2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpSocksCommon", "SharpSocksCommon\SharpSocksCommon.csproj", "{5D93EC58-DE1F-4471-971E-EFEC458025D6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug Linux|Any CPU = Debug Linux|Any CPU
+		Debug Win|Any CPU = Debug Win|Any CPU
+		Release Linux|Any CPU = Release Linux|Any CPU
+		Release Win|Any CPU = Release Win|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Debug Linux|Any CPU.ActiveCfg = Debug Win|Any CPU
+		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Debug Linux|Any CPU.Build.0 = Debug Win|Any CPU
+		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Debug Win|Any CPU.ActiveCfg = Debug Win|Any CPU
+		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Debug Win|Any CPU.Build.0 = Debug Win|Any CPU
+		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Release Linux|Any CPU.ActiveCfg = Release Win|Any CPU
+		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Release Linux|Any CPU.Build.0 = Release Win|Any CPU
+		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Release Win|Any CPU.ActiveCfg = Release Win|Any CPU
+		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8}.Release Win|Any CPU.Build.0 = Release Win|Any CPU
+		{86D10A34-C374-4DE4-8E12-490E5E65DDFF}.Debug Linux|Any CPU.ActiveCfg = Debug Linux|Any CPU
+		{86D10A34-C374-4DE4-8E12-490E5E65DDFF}.Debug Linux|Any CPU.Build.0 = Debug Linux|Any CPU
+		{86D10A34-C374-4DE4-8E12-490E5E65DDFF}.Debug Win|Any CPU.ActiveCfg = Debug Win|Any CPU
+		{86D10A34-C374-4DE4-8E12-490E5E65DDFF}.Debug Win|Any CPU.Build.0 = Debug Win|Any CPU
+		{86D10A34-C374-4DE4-8E12-490E5E65DDFF}.Release Linux|Any CPU.ActiveCfg = Release Linux|Any CPU
+		{86D10A34-C374-4DE4-8E12-490E5E65DDFF}.Release Linux|Any CPU.Build.0 = Release Linux|Any CPU
+		{86D10A34-C374-4DE4-8E12-490E5E65DDFF}.Release Win|Any CPU.ActiveCfg = Release Win|Any CPU
+		{86D10A34-C374-4DE4-8E12-490E5E65DDFF}.Release Win|Any CPU.Build.0 = Release Win|Any CPU
+		{5D93EC58-DE1F-4471-971E-EFEC458025D6}.Debug Linux|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D93EC58-DE1F-4471-971E-EFEC458025D6}.Debug Linux|Any CPU.Build.0 = Debug|Any CPU
+		{5D93EC58-DE1F-4471-971E-EFEC458025D6}.Debug Win|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D93EC58-DE1F-4471-971E-EFEC458025D6}.Debug Win|Any CPU.Build.0 = Debug|Any CPU
+		{5D93EC58-DE1F-4471-971E-EFEC458025D6}.Release Linux|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D93EC58-DE1F-4471-971E-EFEC458025D6}.Release Linux|Any CPU.Build.0 = Debug|Any CPU
+		{5D93EC58-DE1F-4471-971E-EFEC458025D6}.Release Win|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D93EC58-DE1F-4471-971E-EFEC458025D6}.Release Win|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3D33DC4C-4318-4ACA-9CDC-7D361D10B7C8} = {7609AA60-9A82-47F8-81B3-6F8A27C7BD45}
+		{86D10A34-C374-4DE4-8E12-490E5E65DDFF} = {9BD7DAD8-4485-4CFD-B17F-7F1DF9C598F2}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8F3D6D65-58A6-4ADC-81AF-B2A4FB403FDF}
+	EndGlobalSection
+EndGlobal

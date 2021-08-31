@@ -1,0 +1,46 @@
+name: SharpSocks Implant
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Release Win]
+
+    runs-on: windows-latest
+
+    env:
+      Solution_Name: SharpSocks                         # Replace with your solution name, i.e. MyWpfApp.sln.
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    # Install the .NET Core workload
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+
+    - name: Setup Nuget
+      uses: Nuget/setup-nuget@v1.0.5
+
+    - name: Restore nuget packages
+      run: nuget restore SharpSocks.sln
+
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Build the application
+      run: msbuild SharpSocksImplant/SharpSocksImplant.csproj /p:Configuration=$env:Configuration
+      env:
+        Configuration: ${{ matrix.configuration }}

@@ -1,0 +1,11 @@
+{
+  "sdk": {
+    "version": "5.0",
+    "rollForward": "latestMajor",
+    "allowPrerelease": false
+  },
+  "runtimes": {
+    "win10-x64": { },
+    "linux-x64" : { }
+  }
+}

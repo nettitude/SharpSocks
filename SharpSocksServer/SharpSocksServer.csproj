@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <RootNamespace>SharpSocksServer</RootNamespace>
+        <LangVersion>9</LangVersion>
+        <Nullable>disable</Nullable>
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+        <Configurations>Debug Win;Release Win;Debug Linux;Release Linux</Configurations>
+        <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Win|AnyCPU'">
+        <DebugSymbols>true</DebugSymbols>
+        <Optimize>true</Optimize>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Linux|AnyCPU'">
+      <DebugSymbols>true</DebugSymbols>
+      <Optimize>true</Optimize>
+      <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Win|AnyCPU'">
+      <Optimize>false</Optimize>
+      <DefineConstants>DEBUG;TRACE</DefineConstants>
+      <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Linux|AnyCPU'">
+      <DefineConstants>DEBUG;TRACE</DefineConstants>
+      <Optimize>false</Optimize>
+      <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\SharpSocksCommon\SharpSocksCommon.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.0-beta.74" />
+        <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+        <PackageReference Include="System.CodeDom" Version="6.0.0-rc.2.21480.5" />
+        <PackageReference Include="System.ComponentModel.Annotations" Version="6.0.0-preview.4.21253.7" />
+        <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
+    </ItemGroup>
+</Project>
