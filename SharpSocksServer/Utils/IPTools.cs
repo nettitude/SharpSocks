@@ -44,7 +44,7 @@ namespace SharpSocksServer.Utils
             }
             catch (Exception ex)
             {
-                ServerComms.LogError("Failed to resolve typeof Host: " + ex.Message);
+                ServerComms.LogError($"Failed to resolve typeof Host: {ex.Message}");
                 return null;
             }
 

@@ -84,9 +84,9 @@ namespace SharpSocksServer
             {
                 _app.Execute(args);
             }
-            catch
+            catch (Exception e)
             {
-                Console.WriteLine(_app.GetHelpText());
+                Console.WriteLine(e);
             }
         }
 
@@ -102,7 +102,7 @@ namespace SharpSocksServer
         private static string ValidateCmdChannelId(string commandChannelId)
         {
             if (!string.IsNullOrWhiteSpace(commandChannelId)) return commandChannelId;
-            WARNINGS.Add("Command Channel Id is blank defaulting to " + DEFAULT_COMMAND_CHANNEL_ID);
+            WARNINGS.Add($"Command Channel Id is blank defaulting to {DEFAULT_COMMAND_CHANNEL_ID}");
             return string.IsNullOrWhiteSpace(commandChannelId) ? DEFAULT_COMMAND_CHANNEL_ID : commandChannelId;
         }
 
@@ -113,7 +113,7 @@ namespace SharpSocksServer
             var aes = Aes.Create();
             aes.GenerateKey();
             var base64String = Convert.ToBase64String(aes.Key);
-            WARNINGS.Add("Using encryption key " + base64String);
+            WARNINGS.Add($"Using encryption key {base64String}");
             return base64String;
         }
 
@@ -140,6 +140,7 @@ namespace SharpSocksServer
                 }
 
                 Console.WriteLine("[x] to quit\r\n");
+
                 PsSocksServer.CreateSocksController(socksIpToListen, serverUri, null, commandChannelId, socksPort, encryptionKey, sessionCookieName, payloadCookieName, COMMS,
                     socketTimeout);
                 string input;
