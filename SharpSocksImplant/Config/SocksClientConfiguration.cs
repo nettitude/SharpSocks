@@ -49,7 +49,7 @@ namespace SharpSocksImplant.Config
             }
         }
 
-        public bool InsecureSSL { get; set; }
+        public bool InsecureTLS { get; set; }
 
         public string ServerHost { get; set; }
 
