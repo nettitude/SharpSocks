@@ -11,7 +11,7 @@ namespace SharpSocksImplant.Integration
     public static class PoshCreateProxy
     {
         public static SocksController CreateSocksController(Uri serverUri, string commandChannelId, string hostHeader, string userAgent, string key, List<string> urlPaths,
-            string sessionCookieName, string payloadCookieName, ushort timeBetweenReads, IWebProxy wbProxy, short beaconTime, IImplantLog implantComms, bool insecureSSL = true)
+            string sessionCookieName, string payloadCookieName, ushort timeBetweenReads, IWebProxy wbProxy, short beaconTime, IImplantLog implantComms, bool insecureTLS = true)
         {
             var implantLog = implantComms ?? new PoshDefaultImplantComms();
             var config = new SocksClientConfiguration
@@ -27,7 +27,7 @@ namespace SharpSocksImplant.Integration
                 HostHeader = hostHeader,
                 PayloadCookieName = payloadCookieName,
                 SessionCookieName = sessionCookieName,
-                InsecureSSL = insecureSSL,
+                InsecureTLS = insecureTLS,
                 TimeBetweenReads = timeBetweenReads,
             };
             if (key == null)

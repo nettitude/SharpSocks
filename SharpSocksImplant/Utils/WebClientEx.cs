@@ -5,8 +5,8 @@ namespace SharpSocksImplant.Utils
 {
     public class WebClientEx : WebClient
     {
-        private readonly bool _insecureSSL;
         private const string DEFAULT_USERAGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36";
+        private readonly bool _insecureSSL;
         private string _userAgent;
 
         public WebClientEx(CookieContainer container)
@@ -50,7 +50,7 @@ namespace SharpSocksImplant.Utils
             ((HttpWebRequest)webRequest).ServicePoint.Expect100Continue = false;
             ((HttpWebRequest)webRequest).UserAgent = UserAgent;
             var httpWebRequest = webRequest as HttpWebRequest;
-            if (!_insecureSSL)
+            if (_insecureSSL)
                 ServicePointManager.ServerCertificateValidationCallback = (z, y, x, w) => true;
             if (httpWebRequest != null)
                 httpWebRequest.CookieContainer = CookieContainer;

