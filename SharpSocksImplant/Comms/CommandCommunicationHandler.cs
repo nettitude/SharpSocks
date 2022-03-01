@@ -42,7 +42,7 @@ namespace SharpSocksImplant.Comms
             ImplantComms.LogMessage(payload == null
                 ? $"[{targetId}][Implant -> SOCKS Server] Sending 0 bytes"
                 : $"[{targetId}][Implant -> SOCKS Server] Sending {payload.Count} bytes");
-            var encryptedSessionPayload = _encryption.Encrypt(Encoding.UTF8.GetBytes(targetId + ":" + status).ToList());
+            var encryptedSessionPayload = _encryption.Encrypt(Encoding.UTF8.GetBytes($"{targetId}:{status}").ToList());
             var cookieContainer = new CookieContainer();
             var webClientEx = new WebClientEx(cookieContainer, _config.InsecureSSL)
             {
@@ -152,6 +152,7 @@ namespace SharpSocksImplant.Comms
                     }
                     else if (targetId == _config.CommandChannelSessionId)
                     {
+                        ReportErrorWebException(e, errorId, targetId);
                         if (!RetryUntilFailure(ref retryCount, ref retryRequired, ref retryInterval, targetId))
                         {
                             ImplantComms.LogImportantMessage($"[{targetId}][Implant -> SOCKS Server] Command channel re-tried connection 5 times giving up");
@@ -213,9 +214,9 @@ namespace SharpSocksImplant.Comms
             messageList.Append($"\tStatus: {e.Status.ToString()}\n");
             messageList.Append($"\tCommandServerUI: {_config.CommandServerUi}\n");
             messageList.Append($"\tErrorId: {errorId.ToString()}\n");
-            messageList.Append($"\tResponse from: {e.Response.ResponseUri}\n");
-            messageList.Append($"\tResponse headers: {e.Response.Headers}\n");
-            var responseStream = e.Response.GetResponseStream();
+            messageList.Append($"\tResponse from: {e.Response?.ResponseUri}\n");
+            messageList.Append($"\tResponse headers: {e.Response?.Headers}\n");
+            var responseStream = e.Response?.GetResponseStream();
             if (responseStream != null)
             {
                 string body;

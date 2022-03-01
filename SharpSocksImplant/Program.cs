@@ -152,7 +152,7 @@ namespace SharpSocksImplant
             const string defaultChannel = "7f404221-9f30-470b-b05d-e1a922be3ff6";
             if (string.IsNullOrWhiteSpace(commandChannelId))
             {
-                warnings.Add("Command Channel Id is blank defaulting to " + defaultChannel);
+                warnings.Add($"Command Channel Id is blank defaulting to {defaultChannel}");
                 if (string.IsNullOrWhiteSpace(commandChannelId))
                     commandChannelId = defaultChannel;
             }
@@ -253,6 +253,7 @@ namespace SharpSocksImplant
             }
         }
 
+        // ReSharper disable once UnusedMember.Global
         public static void StopSocks()
         {
             _sock.Stop();

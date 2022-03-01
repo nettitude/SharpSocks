@@ -30,7 +30,7 @@ namespace SharpSocksServer.SocksServer
         public void StartSocks(string ipToListen, ushort localPort, IServiceController controller, ManualResetEvent cmdChannelRunning = null)
         {
             _controller = controller;
-            ServerComms.LogMessage("Wait for Implant TCP Connect before SOCKS Proxy response is " + (WaitOnConnect ? "on" : "off"));
+            ServerComms.LogMessage($"Wait for Implant TCP Connect before SOCKS Proxy response is {(WaitOnConnect ? "on" : "off")}");
             if (cmdChannelRunning == null)
             {
                 StartSocksInternal(ipToListen, localPort);

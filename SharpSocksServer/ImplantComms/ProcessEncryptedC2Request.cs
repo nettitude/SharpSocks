@@ -107,7 +107,7 @@ namespace SharpSocksServer.ImplantComms
             try
             {
                 var decryptedSessionCookie = Encoding.UTF8
-                    .GetString((Encryption.Decrypt(sessionIdCookie.Value) ?? throw new Exception("Can't decrypt session cookie" + sessionIdCookie.Value)).ToArray())
+                    .GetString((Encryption.Decrypt(sessionIdCookie.Value) ?? throw new Exception($"Can't decrypt session cookie{sessionIdCookie.Value}")).ToArray())
                     .Split(':');
                 targetId = decryptedSessionCookie[0];
                 if (!Enum.TryParse(decryptedSessionCookie[1], out statusFromCookie))

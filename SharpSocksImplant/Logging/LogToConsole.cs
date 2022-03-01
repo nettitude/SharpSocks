@@ -76,7 +76,7 @@ namespace SharpSocksImplant.Logging
                 Index = (ctr++ * width).ToString("X4"),
                 Hex = a.Hex.ToString(),
                 Chars = a.Chars.ToString()
-            })).ToList().ForEach(y => Console.WriteLine(y.Index + " " + y.Hex.ToString().ToLower() + " " + ToLiteral(y.Chars)));
+            })).ToList().ForEach(y => Console.WriteLine($"{y.Index} {y.Hex.ToString().ToLower()} {ToLiteral(y.Chars)}"));
         }
 
         private static string ToLiteral(string input)
