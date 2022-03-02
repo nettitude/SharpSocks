@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Security.Cryptography;
 using McMaster.Extensions.CommandLineUtils;
-using SharpSocksServer.Logging;
 
 namespace SharpSocksServer.Config
 {
@@ -21,11 +20,11 @@ namespace SharpSocksServer.Config
         public ushort CommandLimit { get; private init; }
         public bool WaitOnConnect { get; private init; }
 
-        private static string ValidateHttpServer(ILogOutput logger, string serverUri)
+        private static string ValidateHttpServer(string serverUri)
         {
             if (string.IsNullOrWhiteSpace(serverUri))
             {
-                logger.LogMessage("URI to listen is blank defaulting to http://127.0.0.1:8081");
+                Console.WriteLine("[*] URI to listen is blank defaulting to http://127.0.0.1:8081");
                 serverUri = "http://127.0.0.1:8081";
             }
 
@@ -34,25 +33,25 @@ namespace SharpSocksServer.Config
             return serverUri;
         }
 
-        private static string ValidateCmdChannelId(ILogOutput logger, string commandChannelId)
+        private static string ValidateCmdChannelId(string commandChannelId)
         {
             if (!string.IsNullOrWhiteSpace(commandChannelId)) return commandChannelId;
-            logger.LogMessage($"Command Channel Id is blank defaulting to {DEFAULT_COMMAND_CHANNEL_ID}");
+            Console.WriteLine($"[*] Command Channel Id is blank defaulting to {DEFAULT_COMMAND_CHANNEL_ID}");
             return string.IsNullOrWhiteSpace(commandChannelId) ? DEFAULT_COMMAND_CHANNEL_ID : commandChannelId;
         }
 
-        private static string ValidateEncryptionKey(ILogOutput logger, string encryptionKey)
+        private static string ValidateEncryptionKey(string encryptionKey)
         {
             if (!string.IsNullOrWhiteSpace(encryptionKey))
                 return encryptionKey;
             var aes = Aes.Create();
             aes.GenerateKey();
             var base64String = Convert.ToBase64String(aes.Key);
-            logger.LogMessage($"Using encryption key (base64'd) {base64String}");
+            Console.WriteLine($"[*] Using encryption key (base64'd) {base64String}");
             return base64String;
         }
 
-        public static SharpSocksConfig LoadConfig(ILogOutput logger, CommandOption optSocksServerUri, CommandOption optSocketTimeout, CommandOption optCmdChannelId,
+        public static SharpSocksConfig LoadConfig(CommandOption optSocksServerUri, CommandOption optSocketTimeout, CommandOption optCmdChannelId,
             CommandOption optEncKey, CommandOption optSessionCookie, CommandOption optPayloadCookie, CommandOption optVerbose, CommandOption optHttpServer)
         {
             var socksHostPort = !optSocksServerUri.HasValue() || string.IsNullOrWhiteSpace(optSocksServerUri.Value()) ? "*:43334" : optSocksServerUri.Value();
@@ -80,7 +79,7 @@ namespace SharpSocksServer.Config
             if (!convertedSuccessfully)
             {
                 timeout = 30U;
-                logger.LogMessage($"Defaulting Socket Timeout to {timeout}s");
+                Console.WriteLine($"[*] Defaulting Socket Timeout to {timeout}s");
             }
 
             timeout *= 1000U;
@@ -89,13 +88,13 @@ namespace SharpSocksServer.Config
             {
                 SocksIP = socksIpToListen,
                 SocksPort = socksPort,
-                CommandChannelId = ValidateCmdChannelId(logger, optCmdChannelId.Value()),
-                EncryptionKey = ValidateEncryptionKey(logger, optEncKey.Value()),
+                CommandChannelId = ValidateCmdChannelId(optCmdChannelId.Value()),
+                EncryptionKey = ValidateEncryptionKey(optEncKey.Value()),
                 SessionCookieName = optSessionCookie.Value() ?? "ASP.NET_SessionId",
                 PayloadCookieName = optPayloadCookie.Value() ?? "__RequestVerificationToken",
                 SocketTimeout = timeout,
                 Verbose = optVerbose.HasValue(),
-                HttpServerURI = ValidateHttpServer(logger, optHttpServer.Value()),
+                HttpServerURI = ValidateHttpServer(optHttpServer.Value()),
                 WaitOnConnect = true,
                 CommandLimit = 20
             };

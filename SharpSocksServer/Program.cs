@@ -1,5 +1,6 @@
 ﻿using System;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.DependencyInjection;
 using SharpSocksCommon.Encryption;
 using SharpSocksServer.Config;
 using SharpSocksServer.HttpServer;
@@ -11,46 +12,49 @@ namespace SharpSocksServer
 {
     internal static class Program
     {
-        private static readonly ConsoleOutput LOGGER = new();
-        private static CommandLineApplication _app;
-
         private static void Main(string[] args)
         {
             Console.WriteLine("SharpSocks Server\r\n=================\n");
             try
             {
+                Console.WriteLine("[*] Initialising...");
                 var config = ParseArgs(args);
 
-                if (config.Verbose)
-                    LOGGER.SetVerboseOn();
+                var services = new ServiceCollection()
+                    .AddSingleton(config)
+                    .AddSingleton<IEncryptionHelper>(new RijndaelCBCCryptor(config.EncryptionKey))
+                    .AddSingleton<EncryptedC2RequestProcessor>()
+                    .AddSingleton<HttpServerController>()
+                    .AddSingleton<ServerController>()
+                    .AddSingleton<ILogOutput, ConsoleOutput>();
 
-                SocksProxy.Logger = LOGGER;
+                var serviceProvider = services.BuildServiceProvider();
 
-                var cryptor = new RijndaelCBCCryptor(config.EncryptionKey);
-                LOGGER.LogMessage("Using Rijndael CBC encryption");
+                var logger = serviceProvider.GetRequiredService<ILogOutput>();
+                SocksProxy.Logger = logger;
 
-                var requestProcessor = new EncryptedC2RequestProcessor(LOGGER, cryptor, config);
-                var httpServerController = new HttpServerController(LOGGER, requestProcessor);
-                var socksServerController = new ServerController(LOGGER, config, requestProcessor);
+                var httpServerController = serviceProvider.GetRequiredService<HttpServerController>();
+                var serverController = serviceProvider.GetRequiredService<ServerController>();
+                Console.WriteLine("[*] Initialised");
 
+                httpServerController.StartHttp();
+                serverController.StartSocks();
 
-                httpServerController.StartHttp(config.HttpServerURI);
-                socksServerController.StartSocks(config.SocksIP, config.SocksPort);
+                logger.LogImportantMessage("Press x to quit");
 
-                LOGGER.LogMessage("Press x to quit\r\n");
                 while ("x" != Console.ReadLine())
                 {
                 }
             }
             catch (Exception e)
             {
-                LOGGER.LogError(e);
+                Console.WriteLine($"[-] Fatal Error: {e}");
             }
         }
 
         private static SharpSocksConfig ParseArgs(string[] args)
         {
-            _app = new CommandLineApplication();
+            var _app = new CommandLineApplication();
             _app.HelpOption();
             var optSocksServerUri = _app.Option("-s|--socksserveruri", "IP:Port for SOCKS to listen on, default is *:43334", CommandOptionType.SingleValue);
             var optCmdChannelId = _app.Option("-c|--cmdid", "Command Channel Identifier, needs to be shared with the server", CommandOptionType.SingleValue);
@@ -64,7 +68,7 @@ namespace SharpSocksServer
             SharpSocksConfig config = null;
             _app.OnExecute(() =>
             {
-                config = SharpSocksConfig.LoadConfig(LOGGER, optSocksServerUri, optSocketTimeout, optCmdChannelId, optEncKey, optSessionCookie, optPayloadCookie,
+                config = SharpSocksConfig.LoadConfig(optSocksServerUri, optSocketTimeout, optCmdChannelId, optEncKey, optSessionCookie, optPayloadCookie,
                     optVerbose, optHttpServer);
             });
             _app.Execute(args);

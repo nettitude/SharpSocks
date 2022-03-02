@@ -13,30 +13,28 @@ namespace SharpSocksServer.SocksServer
         public ServerController(ILogOutput logger, SharpSocksConfig config, EncryptedC2RequestProcessor requestProcessor)
         {
             Logger = logger;
-            WaitOnConnect = config.WaitOnConnect;
-            SocketTimeout = config.SocketTimeout;
+            Config = config;
             RequestProcessor = requestProcessor;
         }
 
         private ILogOutput Logger { get; }
-        private bool WaitOnConnect { get; }
-        private uint SocketTimeout { get; }
+        private SharpSocksConfig Config { get; }
         private EncryptedC2RequestProcessor RequestProcessor { get; }
 
-        public void StartSocks(string ipToListen, ushort localPort)
+        public void StartSocks()
         {
-            Logger.LogMessage($"Wait for Implant TCP Connect before SOCKS Proxy response is {(WaitOnConnect ? "on" : "off")}");
+            Logger.LogMessage($"Wait for Implant TCP Connect before SOCKS Proxy response is {(Config.WaitOnConnect ? "on" : "off")}");
             if (RequestProcessor.CmdChannelRunningEvent == null)
             {
-                StartSocksInternal(ipToListen, localPort);
+                StartSocksInternal(Config.SocksIP, Config.SocksPort);
                 return;
             }
 
             Task.Factory.StartNew((Action)(() =>
             {
-                Logger.LogMessage("Waiting for command channel before starting SOCKS proxy");
+                Logger.LogImportantMessage("Waiting for command channel before starting SOCKS proxy");
                 RequestProcessor.CmdChannelRunningEvent.WaitOne();
-                StartSocksInternal(ipToListen, localPort);
+                StartSocksInternal(Config.SocksIP, Config.SocksPort);
             }));
         }
 
@@ -86,9 +84,9 @@ namespace SharpSocksServer.SocksServer
                     Logger.LogMessage($"[Client -> SOCKS Server] New request from to {tcpListener.LocalEndpoint} from {tcpClient.Client.RemoteEndPoint}");
                     new SocksProxy
                     {
-                        TotalSocketTimeout = SocketTimeout,
+                        TotalSocketTimeout = Config.SocketTimeout,
                         SocketComms = RequestProcessor
-                    }.ProcessRequest(tcpClient, WaitOnConnect);
+                    }.ProcessRequest(tcpClient, Config.WaitOnConnect);
                 }
                 catch (Exception e)
                 {

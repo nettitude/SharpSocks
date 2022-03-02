@@ -1,10 +1,16 @@
 ﻿using System;
+using SharpSocksServer.Config;
 
 namespace SharpSocksServer.Logging
 {
     public class ConsoleOutput : ILogOutput
     {
-        private bool _verbose;
+        private readonly bool _verbose;
+
+        public ConsoleOutput(SharpSocksConfig config)
+        {
+            _verbose = config.Verbose;
+        }
 
         public void LogError(string errorMessage)
         {
@@ -26,17 +32,12 @@ namespace SharpSocksServer.Logging
 
         public void LogImportantMessage(string message)
         {
-            Console.WriteLine($"[{DateTime.Now}][!] {message}");
+            Console.WriteLine($"[{DateTime.Now}][!][!] {message} [!][!]");
         }
 
         public bool IsVerboseOn()
         {
             return _verbose;
-        }
-
-        public void SetVerboseOn()
-        {
-            _verbose = true;
         }
     }
 }

@@ -11,6 +11,7 @@ namespace SharpSocksCommon.Encryption
 
         public RijndaelCBCCryptor(string base64Key)
         {
+            Console.WriteLine("[*] Using Rijndael CBC encryption");
             _key.AddRange(Convert.FromBase64String(base64Key));
         }
 
