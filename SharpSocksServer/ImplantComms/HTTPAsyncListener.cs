@@ -45,7 +45,7 @@ namespace SharpSocksServer.ImplantComms
             }
             catch (Exception e)
             {
-                ServerComms.LogError($"Http Listener failed {e.Message}");
+                ServerComms.LogError($"HTTP Listener failed {e}");
                 _listener.BeginGetContext(ListenerCallback, _listener);
             }
         }

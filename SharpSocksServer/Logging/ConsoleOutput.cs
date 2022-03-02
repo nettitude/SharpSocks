@@ -34,11 +34,6 @@ namespace SharpSocksServer.Logging
             return _verbose;
         }
 
-        public static void BannerMessage(string message)
-        {
-            Console.WriteLine(message);
-        }
-
         public void SetVerboseOn()
         {
             _verbose = true;
