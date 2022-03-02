@@ -27,7 +27,6 @@ namespace SharpSocksServer.ImplantComms
         private readonly Dictionary<string, ConnectionDetails> _mapSessionToConnectionDetails = new();
         private readonly string _sessionIdName;
         private DateTime? _lastTimeCommandChannelSeen;
-        private int _longPollTimeout = 30;
 
         public EncryptedC2RequestProcessor(IEncryptionHelper encryption, string sessionCookieName, string commandChannel, ushort commandLimit = 5)
         {
@@ -49,18 +48,6 @@ namespace SharpSocksServer.ImplantComms
         private IEncryptionHelper Encryption { get; }
 
         public ManualResetEvent CmdChannelRunningEvent { get; }
-
-        public int LongPollTimeout
-        {
-            get => _longPollTimeout;
-            set
-            {
-                _longPollTimeout = value;
-                if (!Logger.IsVerboseOn())
-                    return;
-                Logger.LogMessage($"HTTP Long Poll timeout is {value} s");
-            }
-        }
 
         public string PayloadCookieName { get; init; }
 
@@ -381,11 +368,11 @@ namespace SharpSocksServer.ImplantComms
                 if (_lastTimeCommandChannelSeen.HasValue)
                     return;
                 CmdChannelRunningEvent.Set();
-                (_lastTimeCommandChannelSeen = DateTime.Now).ToString();
+                _lastTimeCommandChannelSeen = DateTime.Now;
             }
             else
             {
-                (_lastTimeCommandChannelSeen = DateTime.Now).ToString();
+                _lastTimeCommandChannelSeen = DateTime.Now;
             }
         }
     }

@@ -47,9 +47,8 @@ namespace SharpSocksServer.SocksServer
 
         private ulong Counter { get; }
 
-        public static ILogOutput ServerComms { get; set; }
-
-        public static ISocksImplantComms SocketComms { get; set; }
+        public ISocksImplantComms SocketComms { get; set; }
+        public static ILogOutput Logger { get; set; }
 
         public static ConnectionDetails GetDetailsForTargetId(string targetId)
         {
@@ -69,7 +68,7 @@ namespace SharpSocksServer.SocksServer
         {
             if (!MAP_TARGET_ID_TO_SOCKS_INSTANCE.ContainsKey(target))
             {
-                ServerComms.LogError($"[{target}] Target {target} not found in Socks instance");
+                Logger.LogError($"[{target}] Target {target} not found in Socks instance");
                 return;
             }
 
@@ -78,10 +77,10 @@ namespace SharpSocksServer.SocksServer
 
         public static void NotifyConnection(string targetId, CommandChannelStatus status)
         {
-            ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Message has arrived back, status: {status}");
+            Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Message has arrived back, status: {status}");
             if (!MAP_TARGET_ID_TO_SOCKS_INSTANCE.ContainsKey(targetId))
             {
-                ServerComms.LogError($"[{targetId}][Implant -> SOCKS Server] Target {targetId} not found in Socks instance");
+                Logger.LogError($"[{targetId}][Implant -> SOCKS Server] Target {targetId} not found in Socks instance");
             }
             else
                 switch (status)
@@ -123,11 +122,11 @@ namespace SharpSocksServer.SocksServer
         {
             if (!MAP_TARGET_ID_TO_SOCKS_INSTANCE.ContainsKey(targetId))
                 return;
-            ServerComms.LogMessage($"[{targetId}][Client -> SOCKS Server] Close connection called, shutting client down...");
+            Logger.LogMessage($"[{targetId}][Client -> SOCKS Server] Close connection called, shutting client down...");
             MAP_TARGET_ID_TO_SOCKS_INSTANCE[targetId].ShutdownClient(true);
             if (!MAP_TARGET_ID_TO_SOCKS_INSTANCE.Remove(targetId, out _))
             {
-                ServerComms.LogError($"[{targetId}][Client -> SOCKS Server] Unable to remove target from map");
+                Logger.LogError($"[{targetId}][Client -> SOCKS Server] Unable to remove target from map");
             }
         }
 
@@ -143,7 +142,7 @@ namespace SharpSocksServer.SocksServer
 
         private void ShutdownClient(bool implantNotified = false)
         {
-            ServerComms.LogImportantMessage($"[{_targetId}] Shutdown called");
+            Logger.LogImportantMessage($"[{_targetId}] Shutdown called");
             _status = implantNotified ? CommandChannelStatus.CLOSING : CommandChannelStatus.TIMEOUT;
             _open = false;
             if (!_shutdownReceived)
@@ -170,7 +169,7 @@ namespace SharpSocksServer.SocksServer
             {
                 if (tcpClient.Client.RemoteEndPoint is not IPEndPoint remoteEndPoint4)
                     return;
-                ServerComms.LogError(
+                Logger.LogError(
                     $"[{_targetId}][Client -> SOCKS Server] Failed reading SOCKS Connection from {IPAddress.Parse(remoteEndPoint4.Address.ToString())}:{remoteEndPoint4.Port.ToString()}");
                 ShutdownClient();
             }
@@ -202,7 +201,7 @@ namespace SharpSocksServer.SocksServer
                     ShutdownClient();
                     if (tcpClient.Client.RemoteEndPoint is not IPEndPoint remoteEndPoint5)
                         return;
-                    ServerComms.LogError(
+                    Logger.LogError(
                         $"[{_targetId}][Client -> SOCKS Server] Failed reading SOCKS Connection from {IPAddress.Parse(remoteEndPoint5.Address.ToString())}:{remoteEndPoint5.Port.ToString()}: {e}");
                 }
             }
@@ -225,7 +224,7 @@ namespace SharpSocksServer.SocksServer
                 {
                     if (!_tcpClient.Connected || !TcpUtils.CheckTcpConnectionState(_tcpClient))
                     {
-                        ServerComms.LogMessage($"[{_targetId}][Client -> SOCKS Server] Client no longer connected in start loop, shutting connection down...");
+                        Logger.LogMessage($"[{_targetId}][Client -> SOCKS Server] Client no longer connected in start loop, shutting connection down...");
                         ShutdownClient();
                         return;
                     }
@@ -248,7 +247,7 @@ namespace SharpSocksServer.SocksServer
                     }
                     catch (Exception e)
                     {
-                        ServerComms.LogError($"[{_targetId}][Client -> SOCKS Server] Connection to {_targetHost}:{_targetPort} has dropped: {e}");
+                        Logger.LogError($"[{_targetId}][Client -> SOCKS Server] Connection to {_targetHost}:{_targetPort} has dropped: {e}");
                         ShutdownClient();
                         break;
                     }
@@ -256,7 +255,7 @@ namespace SharpSocksServer.SocksServer
                     if (num++ >= (int)TotalSocketTimeout / 100)
                     {
                         stream.Close();
-                        ServerComms.LogError($"[{_targetId}][Client -> SOCKS Server] Connection closed to {_targetHost}:{_targetPort} after ({TotalSocketTimeout / 1000U}s) idle");
+                        Logger.LogError($"[{_targetId}][Client -> SOCKS Server] Connection closed to {_targetHost}:{_targetPort} after ({TotalSocketTimeout / 1000U}s) idle");
                         ShutdownClient();
                         break;
                     }
@@ -264,7 +263,7 @@ namespace SharpSocksServer.SocksServer
             }
             catch (Exception e)
             {
-                ServerComms.LogError($"[{_targetId}][Client -> SOCKS Server] Connection to {_targetHost}:{_targetPort} has dropped: {e}");
+                Logger.LogError($"[{_targetId}][Client -> SOCKS Server] Connection to {_targetHost}:{_targetPort} has dropped: {e}");
                 ShutdownClient();
             }
         }
@@ -281,7 +280,7 @@ namespace SharpSocksServer.SocksServer
                     return;
                 if (!_tcpClient.Connected || !TcpUtils.CheckTcpConnectionState(_tcpClient))
                 {
-                    ServerComms.LogMessage($"[{_targetId}][Client -> SOCKS Server] Client no longer connected on read attempt, shutting connection down...");
+                    Logger.LogMessage($"[{_targetId}][Client -> SOCKS Server] Client no longer connected on read attempt, shutting connection down...");
                     ShutdownClient();
                 }
                 else
@@ -297,7 +296,7 @@ namespace SharpSocksServer.SocksServer
                     }
 
                     SocketComms.SendDataToTarget(_targetId, payload);
-                    ServerComms.LogMessage($"[{_targetId}][Client -> SOCKS Server] Client sent {payload.Count} bytes ");
+                    Logger.LogMessage($"[{_targetId}][Client -> SOCKS Server] Client sent {payload.Count} bytes");
                     _dataSent += payload.Count;
                 }
             }
@@ -306,11 +305,11 @@ namespace SharpSocksServer.SocksServer
                 try
                 {
                     if (_tcpClient?.Client != null)
-                        ServerComms.LogError($"[{_targetId}][Client -> SOCKS Server] Connection to {_tcpClient.Client.RemoteEndPoint} has dropped: {e}");
+                        Logger.LogError($"[{_targetId}][Client -> SOCKS Server] Connection to {_tcpClient.Client.RemoteEndPoint} has dropped: {e}");
                 }
                 catch (ObjectDisposedException)
                 {
-                    ServerComms.LogError($"[{_targetId}][Client -> SOCKS Server] Connection to {_targetHost}:{_targetPort} has dropped: {e}");
+                    Logger.LogError($"[{_targetId}][Client -> SOCKS Server] Connection to {_targetHost}:{_targetPort} has dropped: {e}");
                 }
 
                 ShutdownClient();
@@ -330,20 +329,20 @@ namespace SharpSocksServer.SocksServer
                     var stream = _tcpClient.GetStream();
                     stream.Write(payload.ToArray(), 0, payload.Count);
                     stream.Flush();
-                    ServerComms.LogMessage($"[{_targetId}][SOCKS Server -> Client] Wrote {payload.Count} bytes");
+                    Logger.LogMessage($"[{_targetId}][SOCKS Server -> Client] Wrote {payload.Count} bytes");
                     if (_tcpClient.Connected)
                         return;
-                    ServerComms.LogMessage($"[{_targetId}][SOCKS Server -> Client] TCP Client no longer connection after writing, shutting down...");
+                    Logger.LogMessage($"[{_targetId}][SOCKS Server -> Client] TCP Client no longer connection after writing, shutting down...");
                     ShutdownClient();
                 }
                 catch (Exception e)
                 {
-                    ServerComms.LogMessage($"[{_targetId}][SOCKS Server -> Client] Error writing data, shutting down client: {e}");
+                    Logger.LogMessage($"[{_targetId}][SOCKS Server -> Client] Error writing data, shutting down client: {e}");
                     ShutdownClient();
                 }
             else
             {
-                ServerComms.LogMessage($"[{_targetId}][SOCKS Server -> Client] TCP Client no longer connection on attempt to write, shutting down...");
+                Logger.LogMessage($"[{_targetId}][SOCKS Server -> Client] TCP Client no longer connection on attempt to write, shutting down...");
                 ShutdownClient();
             }
         }
@@ -363,10 +362,10 @@ namespace SharpSocksServer.SocksServer
 
         private byte ProcessSocksHeaders(IReadOnlyList<byte> buffer)
         {
-            ServerComms.LogMessage($"[Client -> SOCKS Server] New SOCKS request");
+            Logger.LogMessage($"[Client -> SOCKS Server] New SOCKS request");
             if (buffer.Count is < 9 or > 256)
             {
-                ServerComms.LogError($"[Client -> SOCKS Server] Socks server: buffer size {buffer.Count} is not valid, must be between 9 & 256");
+                Logger.LogError($"[Client -> SOCKS Server] Socks server: buffer size {buffer.Count} is not valid, must be between 9 & 256");
                 return Socks4ClientHeader.Socks4ClientHeaderStatus.REQUEST_REJECTED_OR_FAILED;
             }
 
@@ -381,7 +380,7 @@ namespace SharpSocksServer.SocksServer
             var count1 = sourceArray.ToList().IndexOf(0) + 1;
             if (-1 == count1)
             {
-                ServerComms.LogError($"[Client -> SOCKS Server] User id is invalid rejecting connection request");
+                Logger.LogError($"[Client -> SOCKS Server] User id is invalid rejecting connection request");
                 return Socks4ClientHeader.Socks4ClientHeaderStatus.REQUEST_REJECTED_OR_FAILED;
             }
 
@@ -392,14 +391,14 @@ namespace SharpSocksServer.SocksServer
                 var array2 = sourceArray.Skip(count1).Take(count2).ToArray();
                 if (array2.Length == 0)
                 {
-                    ServerComms.LogError($"[Client -> SOCKS Server] Host name is empty rejecting connection request");
+                    Logger.LogError($"[Client -> SOCKS Server] Host name is empty rejecting connection request");
                     return Socks4ClientHeader.Socks4ClientHeaderStatus.REQUEST_REJECTED_OR_FAILED;
                 }
 
                 var name = Encoding.UTF8.GetString(array2);
                 if (Uri.CheckHostName(name) == UriHostNameType.Unknown)
                 {
-                    ServerComms.LogError($"[Client -> SOCKS Server] Host name {name} is invalid rejecting connection request");
+                    Logger.LogError($"[Client -> SOCKS Server] Host name {name} is invalid rejecting connection request");
                     return Socks4ClientHeader.Socks4ClientHeaderStatus.REQUEST_REJECTED_OR_FAILED;
                 }
 
@@ -410,10 +409,10 @@ namespace SharpSocksServer.SocksServer
                 _targetHost = new IPAddress(BitConverter.ToUInt32(array1, 0)).ToString();
             }
 
-            ServerComms.LogMessage($"[Client -> SOCKS Server] SOCKS Request to open {_targetHost}:{_targetPort}");
+            Logger.LogMessage($"[Client -> SOCKS Server] SOCKS Request to open {_targetHost}:{_targetPort}");
             _status = CommandChannelStatus.OPENING;
             _targetId = SocketComms.CreateNewConnectionTarget(_targetHost, _targetPort);
-            ServerComms.LogMessage($"[{_targetId}][Client -> SOCKS Server] GUID assigned to new connection to {_targetHost}:{_targetPort}");
+            Logger.LogMessage($"[{_targetId}][Client -> SOCKS Server] GUID assigned to new connection to {_targetHost}:{_targetPort}");
             var socksProxy = this;
             MAP_TARGET_ID_TO_SOCKS_INSTANCE.TryAdd(_targetId, socksProxy);
             if (_waitOnConnect)
@@ -423,7 +422,7 @@ namespace SharpSocksServer.SocksServer
                     return Socks4ClientHeader.Socks4ClientHeaderStatus.REQUEST_REJECTED_OR_FAILED;
             }
 
-            ServerComms.LogImportantMessage($"[{_targetId}][Client -> SOCKS Server] Opened SOCKS connection to {_targetHost}:{_targetPort}");
+            Logger.LogImportantMessage($"[{_targetId}][Client -> SOCKS Server] Opened SOCKS connection to {_targetHost}:{_targetPort}");
             return Socks4ClientHeader.Socks4ClientHeaderStatus.REQUEST_GRANTED;
         }
 

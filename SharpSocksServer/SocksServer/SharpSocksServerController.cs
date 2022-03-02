@@ -1,30 +1,27 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using SharpSocksServer.ImplantComms;
 using SharpSocksServer.Logging;
 
 namespace SharpSocksServer.SocksServer
 {
     public class SharpSocksServerController
     {
-        private readonly ILogOutput _logger;
-
-        public ILogOutput Logger
-        {
-            get => _logger;
-            init => SocksProxy.ServerComms = _logger = value;
-        }
+        public ILogOutput Logger { get; init; }
 
         public bool WaitOnConnect { get; init; }
 
         public uint SocketTimeout { get; init; }
+        public EncryptedC2RequestProcessor RequestProcessor { get; set; }
 
-        public void StartSocks(string ipToListen, ushort localPort, ManualResetEvent cmdChannelRunning = null)
+        public void StartSocks(string ipToListen, ushort localPort)
         {
             Logger.LogMessage($"Wait for Implant TCP Connect before SOCKS Proxy response is {(WaitOnConnect ? "on" : "off")}");
-            if (cmdChannelRunning == null)
+            if (RequestProcessor.CmdChannelRunningEvent == null)
             {
                 StartSocksInternal(ipToListen, localPort);
                 return;
@@ -33,9 +30,22 @@ namespace SharpSocksServer.SocksServer
             Task.Factory.StartNew((Action)(() =>
             {
                 Logger.LogMessage("Waiting for command channel before starting SOCKS proxy");
-                cmdChannelRunning.WaitOne();
+                RequestProcessor.CmdChannelRunningEvent.WaitOne();
                 StartSocksInternal(ipToListen, localPort);
             }));
+        }
+
+        public void StartHttp(string httpServerUri)
+        {
+            var httpAsyncListener = new HttpAsyncListener(RequestProcessor, Logger);
+            httpAsyncListener.CreateListener(new Dictionary<string, X509Certificate2>
+            {
+                {
+                    httpServerUri,
+                    null
+                }
+            });
+            Logger.LogMessage($"C2 HTTP processor listening on {httpServerUri}");
         }
 
         private void StartSocksInternal(string ipToListen, ushort localPort)
@@ -62,7 +72,7 @@ namespace SharpSocksServer.SocksServer
             var tcpListener = (TcpListener)asyncResult.AsyncState;
             if (tcpListener == null)
             {
-                _logger.LogError("[Client -> SOCKS Server] TCP Listener is null");
+                Logger.LogError("[Client -> SOCKS Server] TCP Listener is null");
                 return;
             }
 
@@ -73,7 +83,7 @@ namespace SharpSocksServer.SocksServer
             }
             catch (Exception e)
             {
-                _logger.LogError($"[Client -> SOCKS Server] Initial SOCKS Read failed for endpoint {tcpListener.LocalEndpoint}: {e}");
+                Logger.LogError($"[Client -> SOCKS Server] Initial SOCKS Read failed for endpoint {tcpListener.LocalEndpoint}: {e}");
                 return;
             }
 
@@ -84,7 +94,8 @@ namespace SharpSocksServer.SocksServer
                     Logger.LogMessage($"[Client -> SOCKS Server] New request from to {tcpListener.LocalEndpoint} from {tcpClient.Client.RemoteEndPoint}");
                     new SocksProxy
                     {
-                        TotalSocketTimeout = SocketTimeout
+                        TotalSocketTimeout = SocketTimeout,
+                        SocketComms = RequestProcessor
                     }.ProcessRequest(tcpClient, WaitOnConnect);
                 }
                 catch (Exception e)
