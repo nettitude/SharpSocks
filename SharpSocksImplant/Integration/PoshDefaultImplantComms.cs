@@ -7,56 +7,46 @@ namespace SharpSocksImplant.Integration
     {
         private bool _verbose;
 
-        public Action<string> _LogError { get; set; }
-        public Action<string> _LogMessage { get; set; }
-        public Action<string> _LogImportantMessage { get; set; }
+        public PoshDefaultImplantComms(Action<string> logErrorAction, Action<string> logMessageAction, Action<string> logImportantMessageAction, Action<string> bannerMessageAction)
+        {
+            LogErrorAction = logErrorAction;
+            LogMessageAction = logMessageAction;
+            LogImportantMessageAction = logImportantMessageAction;
+            BannerMessageAction = bannerMessageAction;
+        }
 
-        public Func<string, Guid, bool> _FailError { get; set; }
+        private Action<string> LogErrorAction { get; }
+        private Action<string> LogMessageAction { get; }
+        private Action<string> LogImportantMessageAction { get; }
 
-        public Action<string> _BannerMesg { get; set; }
+        private Action<string> BannerMessageAction { get; }
 
         public void LogError(string errorMessage)
         {
-            _LogError?.Invoke(errorMessage);
+            LogErrorAction?.Invoke(errorMessage);
         }
 
         public void LogMessage(string message)
         {
             if (_verbose)
             {
-                _LogMessage?.Invoke(message);
+                LogMessageAction?.Invoke(message);
             }
         }
 
         public void LogImportantMessage(string message)
         {
-            _LogImportantMessage?.Invoke(message);
-        }
-
-        public bool FailError(string message, Guid errorCode)
-        {
-            return _FailError != null && _FailError(message, errorCode);
+            LogImportantMessageAction?.Invoke(message);
         }
 
         public void BannerMessage(string message)
         {
-            var bannerMessage = _BannerMesg;
-            bannerMessage?.Invoke(message);
+            BannerMessageAction?.Invoke(message);
         }
 
         public void SetVerboseOn()
         {
             _verbose = true;
-        }
-
-        public void SetVerboseOff()
-        {
-            _verbose = false;
-        }
-
-        public bool IsVerboseOn()
-        {
-            return _verbose;
         }
     }
 }

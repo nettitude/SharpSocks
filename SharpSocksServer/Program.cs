@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using McMaster.Extensions.CommandLineUtils;
 using SharpSocksServer.Integration;
@@ -10,11 +9,8 @@ namespace SharpSocksServer
     internal static class Program
     {
         private const string DEFAULT_COMMAND_CHANNEL_ID = "7f404221-9f30-470b-b05d-e1a922be3ff6";
-        private static readonly List<string> WARNINGS = new();
-        private static readonly List<string> ERRORS = new();
-        private static readonly ConsoleOutput COMMS = new();
+        private static readonly ConsoleOutput LOGGER = new();
         private static CommandLineApplication _app;
-
 
         private static void Main(string[] args)
         {
@@ -24,8 +20,7 @@ namespace SharpSocksServer
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                Console.WriteLine(e.StackTrace);
+                LOGGER.LogError(e);
             }
         }
 
@@ -48,7 +43,7 @@ namespace SharpSocksServer
                 var socksHostPort = !optSocksServerUri.HasValue() || string.IsNullOrWhiteSpace(optSocksServerUri.Value()) ? "*:43334" : optSocksServerUri.Value();
                 if (string.IsNullOrEmpty(socksHostPort) || !socksHostPort.Contains(":"))
                 {
-                    COMMS.LogMessage($"Socks IP not in {socksHostPort} IP:port format");
+                    LOGGER.LogMessage($"Socks IP not in {socksHostPort} IP:port format");
                     return;
                 }
 
@@ -61,8 +56,8 @@ namespace SharpSocksServer
 
                 if (!ushort.TryParse(socksPortString, out var socksPort) && socksPort < 1024)
                 {
-                    COMMS.LogMessage($"[!] Port [{socksPortString}] is not valid (or is less than 1024)");
-                    COMMS.LogMessage(_app.GetHelpText());
+                    LOGGER.LogMessage($"[!] Port [{socksPortString}] is not valid (or is less than 1024)");
+                    LOGGER.LogMessage(_app.GetHelpText());
                     return;
                 }
 
@@ -71,12 +66,12 @@ namespace SharpSocksServer
                 if (!convertedSuccessfully)
                 {
                     timeout = 30U;
-                    WARNINGS.Add($"Defaulting Socket Timeout to {timeout}s");
+                    LOGGER.LogMessage($"Defaulting Socket Timeout to {timeout}s");
                 }
 
                 timeout *= 1000U;
                 if (optVerbose.HasValue())
-                    COMMS.SetVerboseOn();
+                    LOGGER.SetVerboseOn();
                 StartSocks(socksIpToListen, ValidateServerUri(optHttpServer.Value()), ValidateCmdChannelId(optCmdChannelId.Value()), socksPort,
                     ValidateEncryptionKey(optEncKey.Value()), optSessionCookie.Value(), optPayloadCookie.Value(), timeout);
             });
@@ -86,14 +81,14 @@ namespace SharpSocksServer
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                LOGGER.LogError(e);
             }
         }
 
         private static string ValidateServerUri(string serverUri)
         {
             if (!string.IsNullOrWhiteSpace(serverUri)) return serverUri;
-            WARNINGS.Add("Uri to listen is blank defaulting to http://127.0.0.1:8081");
+            LOGGER.LogMessage("URI to listen is blank defaulting to http://127.0.0.1:8081");
             if (string.IsNullOrWhiteSpace(serverUri))
                 serverUri = "http://127.0.0.1:8081";
             return serverUri;
@@ -102,7 +97,7 @@ namespace SharpSocksServer
         private static string ValidateCmdChannelId(string commandChannelId)
         {
             if (!string.IsNullOrWhiteSpace(commandChannelId)) return commandChannelId;
-            WARNINGS.Add($"Command Channel Id is blank defaulting to {DEFAULT_COMMAND_CHANNEL_ID}");
+            LOGGER.LogMessage($"Command Channel Id is blank defaulting to {DEFAULT_COMMAND_CHANNEL_ID}");
             return string.IsNullOrWhiteSpace(commandChannelId) ? DEFAULT_COMMAND_CHANNEL_ID : commandChannelId;
         }
 
@@ -113,7 +108,7 @@ namespace SharpSocksServer
             var aes = Aes.Create();
             aes.GenerateKey();
             var base64String = Convert.ToBase64String(aes.Key);
-            WARNINGS.Add($"Using encryption key {base64String}");
+            LOGGER.LogMessage($"Using encryption key (base64'd) {base64String}");
             return base64String;
         }
 
@@ -121,27 +116,15 @@ namespace SharpSocksServer
             string payloadCookieName, uint socketTimeout, bool help = false)
         {
             Banner();
-            Console.WriteLine("");
             if (help)
             {
-                Console.WriteLine(_app.GetHelpText());
-            }
-            else if (ERRORS.Count > 0)
-            {
-                ERRORS.ForEach((Action<string>)(x => COMMS.LogError(x)));
-                Console.WriteLine($"\n{_app.GetHelpText()}");
+                LOGGER.LogMessage(_app.GetHelpText());
             }
             else
             {
-                if (WARNINGS.Count > 0)
-                {
-                    WARNINGS.ForEach((Action<string>)(x => COMMS.LogMessage(x)));
-                    Console.WriteLine("");
-                }
+                LOGGER.LogMessage("[x] to quit\r\n");
 
-                Console.WriteLine("[x] to quit\r\n");
-
-                PsSocksServer.CreateSocksController(socksIpToListen, serverUri, null, commandChannelId, socksPort, encryptionKey, sessionCookieName, payloadCookieName, COMMS,
+                PsSocksServer.CreateSocksController(socksIpToListen, serverUri, null, commandChannelId, socksPort, encryptionKey, sessionCookieName, payloadCookieName, LOGGER,
                     socketTimeout);
                 string input;
                 while ("x" != (input = Console.ReadLine()))
@@ -151,14 +134,14 @@ namespace SharpSocksServer
                         if (strArray.Length > 1 && int.TryParse(strArray[1], out var result))
                             PsSocksServer.SetLongPollTimeout(result);
                         else
-                            Console.WriteLine("[X] New Long Poll format ");
+                            LOGGER.LogMessage("[X] New Long Poll format ");
                     }
             }
         }
 
         private static void Banner()
         {
-            COMMS.BannerMessage("SharpSocks Server\r\n=================");
+            ConsoleOutput.BannerMessage("SharpSocks Server\r\n=================\n");
         }
     }
 }

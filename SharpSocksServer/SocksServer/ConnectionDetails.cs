@@ -1,21 +1,13 @@
-﻿using SharpSocksCommon;
-
-namespace SharpSocksServer.SocksServer
+﻿namespace SharpSocksServer.SocksServer
 {
     public class ConnectionDetails
     {
-        public ulong Id { get; set; }
+        public ulong Id { get; init; }
 
-        public string TargetId { get; set; }
-
-        public string HostPort { get; set; }
-
-        public CommandChannelStatus Status { get; set; }
+        public string HostPort { get; init; }
 
         public int DataSent { get; set; }
 
         public int DataReceived { get; set; }
-
-        public string UpdateTime { get; set; }
     }
 }

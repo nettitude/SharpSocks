@@ -6,10 +6,8 @@ namespace SharpSocksServer.ImplantComms
     {
         string CreateNewConnectionTarget(string target, ushort port);
 
-        bool CloseTargetConnection(string targetId);
+        void CloseTargetConnection(string targetId);
 
-        void CloseAllConnections();
-
-        bool SendDataToTarget(string target, List<byte> payload);
+        void SendDataToTarget(string target, List<byte> payload);
     }
 }

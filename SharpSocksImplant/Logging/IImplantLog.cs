@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SharpSocksImplant.Logging
+﻿namespace SharpSocksImplant.Logging
 {
     public interface IImplantLog
     {
@@ -10,14 +8,8 @@ namespace SharpSocksImplant.Logging
 
         void LogImportantMessage(string message);
 
-        bool FailError(string message, Guid errorCode);
-
         void BannerMessage(string message);
 
         void SetVerboseOn();
-
-        void SetVerboseOff();
-
-        bool IsVerboseOn();
     }
 }

@@ -31,27 +31,13 @@
       <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\SharpSocksCommon\SharpSocksCommon.csproj"/>
+      <ProjectReference Include="..\SharpSocksCommon\SharpSocksCommon.csproj"/>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="BouncyCastle.NetCore" Version="1.8.10"/>
         <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.0-beta.74"/>
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0"/>
         <PackageReference Include="System.CodeDom" Version="6.0.0-rc.2.21480.5"/>
         <PackageReference Include="System.ComponentModel.Annotations" Version="6.0.0-preview.4.21253.7"/>
         <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7"/>
-    </ItemGroup>
-    <ItemGroup>
-        <EmbeddedResource Update="Resources.resx">
-            <Generator>ResXFileCodeGenerator</Generator>
-            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
-    </ItemGroup>
-    <ItemGroup>
-        <Compile Update="Resources.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>Resources.resx</DependentUpon>
-        </Compile>
     </ItemGroup>
 </Project>

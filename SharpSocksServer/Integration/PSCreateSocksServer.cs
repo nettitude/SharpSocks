@@ -10,20 +10,20 @@ namespace SharpSocksServer.Integration
     public static class PsSocksServer
     {
         public static void CreateSocksController(string ipToListen, string serverUri, X509Certificate2 serverCert, string commandChannelId, ushort socksPort,
-            string encryptionKey, string sessionCookieName, string payloadCookieName, ILogOutput logComms, uint socketTimeout = 300000)
+            string encryptionKey, string sessionCookieName, string payloadCookieName, ILogOutput logger, uint socketTimeout = 300000)
         {
-            var logOutput = logComms ?? new ConsoleOutput();
+            var logOutput = logger ?? new ConsoleOutput();
             var serverController = new SharpSocksServerController
             {
-                ServerComms = logComms,
+                Logger = logger,
                 WaitOnConnect = true,
                 SocketTimeout = socketTimeout
             };
-            var debugSimpleEncryptor = new DebugSimpleEncryptor(encryptionKey);
-            logComms?.LogMessage($"Public key for {debugSimpleEncryptor.Initialize()}");
-            var requestProcessor = new EncryptedC2RequestProcessor(debugSimpleEncryptor, sessionCookieName ?? "ASP.NET_SessionId", commandChannelId, 20)
+            var cryptor = new RijndaelCBCCryptor(encryptionKey);
+            logger?.LogMessage("Using Rijndael CBC encryption");
+            var requestProcessor = new EncryptedC2RequestProcessor(cryptor, sessionCookieName ?? "ASP.NET_SessionId", commandChannelId, 20)
             {
-                ServerComms = logComms,
+                Logger = logger,
                 PayloadCookieName = payloadCookieName ?? "__RequestVerificationToken"
             };
             SocksProxy.SocketComms = requestProcessor;
@@ -38,7 +38,7 @@ namespace SharpSocksServer.Integration
                 }
             });
             logOutput.LogMessage($"C2 HTTP processor listening on {serverUri}");
-            serverController.StartSocks(ipToListen, socksPort, httpAsyncListener, requestProcessor.CmdChannelRunningEvent);
+            serverController.StartSocks(ipToListen, socksPort, requestProcessor.CmdChannelRunningEvent);
         }
 
         public static void SetLongPollTimeout(int timeout)

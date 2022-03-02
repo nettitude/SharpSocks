@@ -6,14 +6,9 @@ namespace SharpSocksImplant.Utils
     public class WebClientEx : WebClient
     {
         private const string DEFAULT_USERAGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36";
+
         private readonly bool _insecureSSL;
         private string _userAgent;
-
-        public WebClientEx(CookieContainer container)
-        {
-            CookieContainer = container;
-            AutoRedirect = true;
-        }
 
         public WebClientEx(CookieContainer container, bool insecureSSL = true)
         {
@@ -22,18 +17,7 @@ namespace SharpSocksImplant.Utils
             AutoRedirect = true;
         }
 
-
-        public WebClientEx(bool insecureSSL)
-        {
-            _insecureSSL = insecureSSL;
-            AutoRedirect = true;
-        }
-
-        public bool AutoRedirect { get; set; }
-
-        public HttpStatusCode StatusCode { get; set; }
-
-        public long ElapsedTime { get; set; }
+        private bool AutoRedirect { get; }
 
         public string UserAgent
         {
@@ -41,19 +25,22 @@ namespace SharpSocksImplant.Utils
             set => _userAgent = value;
         }
 
-        public CookieContainer CookieContainer { get; set; } = new CookieContainer();
+        private CookieContainer CookieContainer { get; }
 
         protected override WebRequest GetWebRequest(Uri address)
         {
-            var webRequest = base.GetWebRequest(address);
-            ((HttpWebRequest)webRequest).AllowAutoRedirect = AutoRedirect;
-            ((HttpWebRequest)webRequest).ServicePoint.Expect100Continue = false;
-            ((HttpWebRequest)webRequest).UserAgent = UserAgent;
-            var httpWebRequest = webRequest as HttpWebRequest;
+            var webRequest = (HttpWebRequest)base.GetWebRequest(address);
+            if (webRequest == null)
+            {
+                return null;
+            }
+
+            webRequest.AllowAutoRedirect = AutoRedirect;
+            webRequest.ServicePoint.Expect100Continue = false;
+            webRequest.UserAgent = UserAgent;
             if (_insecureSSL)
                 ServicePointManager.ServerCertificateValidationCallback = (z, y, x, w) => true;
-            if (httpWebRequest != null)
-                httpWebRequest.CookieContainer = CookieContainer;
+            webRequest.CookieContainer = CookieContainer;
             return webRequest;
         }
 
@@ -61,7 +48,6 @@ namespace SharpSocksImplant.Utils
         {
             var webResponse = (HttpWebResponse)base.GetWebResponse(request, result);
             ReadCookies(webResponse);
-            StatusCode = webResponse.StatusCode;
             return webResponse;
         }
 
@@ -69,7 +55,6 @@ namespace SharpSocksImplant.Utils
         {
             var webResponse = (HttpWebResponse)base.GetWebResponse(request);
             ReadCookies(webResponse);
-            StatusCode = webResponse.StatusCode;
             return webResponse;
         }
 

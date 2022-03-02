@@ -7,7 +7,7 @@ using SharpSocksServer.Logging;
 
 namespace SharpSocksServer.ImplantComms
 {
-    public class HttpAsyncListener : IServiceController
+    public class HttpAsyncListener
     {
         private readonly IProcessRequest _processRequest;
         private HttpListener _listener;
@@ -18,12 +18,7 @@ namespace SharpSocksServer.ImplantComms
             ServerComms = logOutput;
         }
 
-        private ILogOutput ServerComms { get; set; }
-
-        public void Stop()
-        {
-            _listener.Close();
-        }
+        private ILogOutput ServerComms { get; }
 
         public void CreateListener(Dictionary<string, X509Certificate2> prefixes)
         {

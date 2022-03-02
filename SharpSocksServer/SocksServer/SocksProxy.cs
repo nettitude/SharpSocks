@@ -22,11 +22,9 @@ namespace SharpSocksServer.SocksServer
         private static ulong _internalCounter;
         private static readonly object INT_LOCKER = new();
         private static readonly ConcurrentDictionary<string, SocksProxy> MAP_TARGET_ID_TO_SOCKS_INSTANCE = new();
-        private readonly object _shutdownLocker = new();
         private readonly AutoResetEvent _socksTimeout = new(false);
         private int _dataReceived;
         private int _dataSent;
-        private DateTime? _lastUpdateTime;
         private bool _open;
         private bool _shutdownReceived;
         private CommandChannelStatus _status = CommandChannelStatus.CLOSED;
@@ -45,24 +43,13 @@ namespace SharpSocksServer.SocksServer
             }
         }
 
-        public uint TotalSocketTimeout { get; set; }
+        public uint TotalSocketTimeout { get; init; }
 
         private ulong Counter { get; }
 
         public static ILogOutput ServerComms { get; set; }
 
         public static ISocksImplantComms SocketComms { get; set; }
-
-        public static List<ConnectionDetails> ConnectionDetails => MAP_TARGET_ID_TO_SOCKS_INSTANCE.Keys.ToList().Select((Func<string, ConnectionDetails>)(x => new ConnectionDetails
-        {
-            HostPort = $"{MAP_TARGET_ID_TO_SOCKS_INSTANCE[x]._targetPort}:{MAP_TARGET_ID_TO_SOCKS_INSTANCE[x]._targetPort}",
-            DataReceived = MAP_TARGET_ID_TO_SOCKS_INSTANCE[x]._dataReceived,
-            DataSent = MAP_TARGET_ID_TO_SOCKS_INSTANCE[x]._dataSent,
-            TargetId = MAP_TARGET_ID_TO_SOCKS_INSTANCE[x]._targetId,
-            Id = MAP_TARGET_ID_TO_SOCKS_INSTANCE[x].Counter,
-            Status = MAP_TARGET_ID_TO_SOCKS_INSTANCE[x]._status,
-            UpdateTime = MAP_TARGET_ID_TO_SOCKS_INSTANCE[x]._lastUpdateTime.HasValue ? MAP_TARGET_ID_TO_SOCKS_INSTANCE[x]._lastUpdateTime.Value.ToShortDateString() : "Never"
-        })).ToList();
 
         public static ConnectionDetails GetDetailsForTargetId(string targetId)
         {
@@ -74,10 +61,7 @@ namespace SharpSocksServer.SocksServer
                 Id = socksProxy.Counter,
                 HostPort = $"{socksProxy._targetHost}:{socksProxy._targetPort}",
                 DataReceived = socksProxy._dataReceived,
-                DataSent = socksProxy._dataSent,
-                TargetId = socksProxy._targetId,
-                Status = socksProxy._status,
-                UpdateTime = socksProxy._lastUpdateTime.HasValue ? socksProxy._lastUpdateTime.Value.ToShortDateString() : "Never"
+                DataSent = socksProxy._dataSent
             };
         }
 
@@ -99,32 +83,40 @@ namespace SharpSocksServer.SocksServer
             {
                 ServerComms.LogError($"[{targetId}][Implant -> SOCKS Server] Target {targetId} not found in Socks instance");
             }
-            else if (status is CommandChannelStatus.CLOSED)
-            {
-                CloseConnection(targetId);
-            }
-            else if (status == CommandChannelStatus.TIMEOUT)
-            {
-                MAP_TARGET_ID_TO_SOCKS_INSTANCE[targetId].ShutdownClient(false);
-            }
-            else if (status == CommandChannelStatus.NO_CHANGE)
-            {
-                var socksProxy = MAP_TARGET_ID_TO_SOCKS_INSTANCE[targetId];
-                socksProxy._lastUpdateTime = DateTime.Now;
-                if (!socksProxy._waitOnConnect)
-                    return;
-                socksProxy._socksTimeout.Set();
-            }
             else
-            {
-                var socksProxy = MAP_TARGET_ID_TO_SOCKS_INSTANCE[targetId];
-                socksProxy._open = status == CommandChannelStatus.OPEN;
-                socksProxy._status = status;
-                socksProxy._lastUpdateTime = DateTime.Now;
-                if (!socksProxy._waitOnConnect)
-                    return;
-                socksProxy._socksTimeout.Set();
-            }
+                switch (status)
+                {
+                    case CommandChannelStatus.CLOSED:
+                        CloseConnection(targetId);
+                        break;
+                    case CommandChannelStatus.TIMEOUT:
+                        MAP_TARGET_ID_TO_SOCKS_INSTANCE[targetId].ShutdownClient();
+                        break;
+                    case CommandChannelStatus.NO_CHANGE:
+                    {
+                        var socksProxy = MAP_TARGET_ID_TO_SOCKS_INSTANCE[targetId];
+                        if (!socksProxy._waitOnConnect)
+                            return;
+                        socksProxy._socksTimeout.Set();
+                        break;
+                    }
+                    case CommandChannelStatus.OPENING:
+                    case CommandChannelStatus.OPEN:
+                    case CommandChannelStatus.CONNECTED:
+                    case CommandChannelStatus.CLOSING:
+                    case CommandChannelStatus.FAILED:
+                    case CommandChannelStatus.ASYNC_UPLOAD:
+                    default:
+                    {
+                        var socksProxy = MAP_TARGET_ID_TO_SOCKS_INSTANCE[targetId];
+                        socksProxy._open = status == CommandChannelStatus.OPEN;
+                        socksProxy._status = status;
+                        if (!socksProxy._waitOnConnect)
+                            return;
+                        socksProxy._socksTimeout.Set();
+                        break;
+                    }
+                }
         }
 
         public static void CloseConnection(string targetId)
@@ -153,7 +145,6 @@ namespace SharpSocksServer.SocksServer
         {
             ServerComms.LogImportantMessage($"[{_targetId}] Shutdown called");
             _status = implantNotified ? CommandChannelStatus.CLOSING : CommandChannelStatus.TIMEOUT;
-            _lastUpdateTime = DateTime.Now;
             _open = false;
             if (!_shutdownReceived)
             {
@@ -421,7 +412,6 @@ namespace SharpSocksServer.SocksServer
 
             ServerComms.LogMessage($"[Client -> SOCKS Server] SOCKS Request to open {_targetHost}:{_targetPort}");
             _status = CommandChannelStatus.OPENING;
-            _lastUpdateTime = DateTime.Now;
             _targetId = SocketComms.CreateNewConnectionTarget(_targetHost, _targetPort);
             ServerComms.LogMessage($"[{_targetId}][Client -> SOCKS Server] GUID assigned to new connection to {_targetHost}:{_targetPort}");
             var socksProxy = this;
@@ -441,9 +431,9 @@ namespace SharpSocksServer.SocksServer
         {
             public NetworkStream stream;
 
-            public byte[] Buffer { get; set; }
+            public byte[] Buffer { get; init; }
 
-            public AutoResetEvent ReceivedData { get; set; }
+            public AutoResetEvent ReceivedData { get; init; }
         }
     }
 }

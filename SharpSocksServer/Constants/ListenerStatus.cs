@@ -2,10 +2,10 @@
 {
     public enum ListenerStatus
     {
-        Connecting,
-        Connected,
-        Closing,
-        Closed,
-        Timeout
+        CONNECTING,
+        CONNECTED,
+        CLOSING,
+        CLOSED,
+        TIMEOUT
     }
 }

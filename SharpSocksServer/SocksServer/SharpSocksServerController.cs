@@ -1,36 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using SharpSocksServer.ImplantComms;
 using SharpSocksServer.Logging;
 
 namespace SharpSocksServer.SocksServer
 {
     public class SharpSocksServerController
     {
-        private readonly Dictionary<ushort, TcpListener> _listeners = new();
-        private IServiceController _controller;
-        private ILogOutput _serverComms;
+        private readonly ILogOutput _logger;
 
-        public ILogOutput ServerComms
+        public ILogOutput Logger
         {
-            get => _serverComms;
-            set => SocksProxy.ServerComms = _serverComms = value;
+            get => _logger;
+            init => SocksProxy.ServerComms = _logger = value;
         }
 
-        public bool WaitOnConnect { get; set; }
+        public bool WaitOnConnect { get; init; }
 
-        public uint SocketTimeout { get; set; }
+        public uint SocketTimeout { get; init; }
 
-        public List<ConnectionDetails> Status => SocksProxy.ConnectionDetails;
-
-        public void StartSocks(string ipToListen, ushort localPort, IServiceController controller, ManualResetEvent cmdChannelRunning = null)
+        public void StartSocks(string ipToListen, ushort localPort, ManualResetEvent cmdChannelRunning = null)
         {
-            _controller = controller;
-            ServerComms.LogMessage($"Wait for Implant TCP Connect before SOCKS Proxy response is {(WaitOnConnect ? "on" : "off")}");
+            Logger.LogMessage($"Wait for Implant TCP Connect before SOCKS Proxy response is {(WaitOnConnect ? "on" : "off")}");
             if (cmdChannelRunning == null)
             {
                 StartSocksInternal(ipToListen, localPort);
@@ -39,7 +32,7 @@ namespace SharpSocksServer.SocksServer
 
             Task.Factory.StartNew((Action)(() =>
             {
-                ServerComms.LogMessage("Waiting for command channel before starting SOCKS proxy");
+                Logger.LogMessage("Waiting for command channel before starting SOCKS proxy");
                 cmdChannelRunning.WaitOne();
                 StartSocksInternal(ipToListen, localPort);
             }));
@@ -52,13 +45,12 @@ namespace SharpSocksServer.SocksServer
             {
                 var localAddress = "*" == ipToListen ? IPAddress.Any : IPAddress.Parse(ipToListen);
                 tcpListener = new TcpListener(localAddress, localPort);
-                _listeners.Add(localPort, tcpListener);
                 tcpListener.Start();
-                ServerComms.LogMessage($"Socks proxy listening started on {localAddress}:{localPort}");
+                Logger.LogMessage($"Socks proxy listening started on {localAddress}:{localPort}");
             }
             catch (Exception e)
             {
-                ServerComms.LogError($"StartSocks error: {e}");
+                Logger.LogError($"StartSocks error: {e}");
                 return;
             }
 
@@ -70,7 +62,7 @@ namespace SharpSocksServer.SocksServer
             var tcpListener = (TcpListener)asyncResult.AsyncState;
             if (tcpListener == null)
             {
-                _serverComms.LogError("[Client -> SOCKS Server] TCP Listener is null");
+                _logger.LogError("[Client -> SOCKS Server] TCP Listener is null");
                 return;
             }
 
@@ -81,7 +73,7 @@ namespace SharpSocksServer.SocksServer
             }
             catch (Exception e)
             {
-                _serverComms.LogError($"[Client -> SOCKS Server] Initial SOCKS Read failed for endpoint {tcpListener.LocalEndpoint}: {e}");
+                _logger.LogError($"[Client -> SOCKS Server] Initial SOCKS Read failed for endpoint {tcpListener.LocalEndpoint}: {e}");
                 return;
             }
 
@@ -89,7 +81,7 @@ namespace SharpSocksServer.SocksServer
             {
                 try
                 {
-                    ServerComms.LogMessage($"[Client -> SOCKS Server] New request from to {tcpListener.LocalEndpoint} from {tcpClient.Client.RemoteEndPoint}");
+                    Logger.LogMessage($"[Client -> SOCKS Server] New request from to {tcpListener.LocalEndpoint} from {tcpClient.Client.RemoteEndPoint}");
                     new SocksProxy
                     {
                         TotalSocketTimeout = SocketTimeout
@@ -97,19 +89,13 @@ namespace SharpSocksServer.SocksServer
                 }
                 catch (Exception e)
                 {
-                    ServerComms.LogError($"[Client -> SOCKS Server] Error occured on EndPoint {tcpListener.LocalEndpoint} shutting down cause of {e}");
+                    Logger.LogError($"[Client -> SOCKS Server] Error occured on EndPoint {tcpListener.LocalEndpoint} shutting down cause of {e}");
                     if (!tcpClient.Connected)
                         return;
                     tcpClient.Close();
                 }
             }));
             tcpListener.BeginAcceptTcpClient(AcceptTcpClient, tcpListener);
-        }
-
-        public void Stop()
-        {
-            SocksProxy.SocketComms.CloseAllConnections();
-            _controller.Stop();
         }
     }
 }
