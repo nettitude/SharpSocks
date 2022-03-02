@@ -6,18 +6,16 @@ namespace SharpSocksImplant.Utils
 {
     public static class WebExceptionAnalyzer
     {
-        public static bool IsTransient(Exception ex)
+        public static bool IsTransient(Exception e)
         {
-            if (ex is WebException webException)
-                if (new[]
-                {
-                    WebExceptionStatus.ConnectionClosed,
-                    WebExceptionStatus.Timeout,
-                    WebExceptionStatus.RequestCanceled,
-                    WebExceptionStatus.ReceiveFailure
-                }.Contains(webException.Status))
-                    return true;
-            return false;
+            if (!(e is WebException webException)) return false;
+            return new[]
+            {
+                WebExceptionStatus.ConnectionClosed,
+                WebExceptionStatus.Timeout,
+                WebExceptionStatus.RequestCanceled,
+                WebExceptionStatus.ReceiveFailure
+            }.Contains(webException.Status);
         }
     }
 }

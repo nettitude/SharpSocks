@@ -10,7 +10,6 @@ using System.Xml.Linq;
 using System.Xml.XPath;
 using SharpSocksCommon;
 using SharpSocksCommon.Encryption;
-using SharpSocksServer.Constants;
 using SharpSocksServer.Logging;
 using SharpSocksServer.SocksServer;
 
@@ -24,7 +23,7 @@ namespace SharpSocksServer.ImplantComms
         private readonly TimeSpan _commandChannelTimeout = new(0, 2, 0);
         private readonly ConcurrentQueue<XElement> _commandTasks = new();
         private readonly ConcurrentDictionary<string, DataTask> _dataTasks = new();
-        private readonly ConcurrentDictionary<string, Listener> _listeners = new();
+        private readonly HashSet<string> _listeners = new();
         private readonly Dictionary<string, ConnectionDetails> _mapSessionToConnectionDetails = new();
         private readonly string _sessionIdName;
         private DateTime? _lastTimeCommandChannelSeen;
@@ -39,16 +38,13 @@ namespace SharpSocksServer.ImplantComms
             CommandLimit = commandLimit;
             _mapSessionToConnectionDetails.Add(commandChannel, new ConnectionDetails
             {
-                TargetId = "CommandChannel",
                 HostPort = "",
-                Status = IsCommandChannelConnected ? CommandChannelStatus.CONNECTED : CommandChannelStatus.CLOSED,
-                UpdateTime = "Never",
                 DataSent = 0,
                 DataReceived = 0
             });
         }
 
-        public ILogOutput ServerComms { get; set; }
+        public ILogOutput Logger { get; init; }
 
         private IEncryptionHelper Encryption { get; }
 
@@ -60,17 +56,15 @@ namespace SharpSocksServer.ImplantComms
             set
             {
                 _longPollTimeout = value;
-                if (!ServerComms.IsVerboseOn())
+                if (!Logger.IsVerboseOn())
                     return;
-                ServerComms.LogMessage($"HTTP Long Poll timeout is {value} s");
+                Logger.LogMessage($"HTTP Long Poll timeout is {value} s");
             }
         }
 
-        public string PayloadCookieName { get; set; }
+        public string PayloadCookieName { get; init; }
 
-        private ushort CommandLimit { get; set; }
-
-        public ConnectionDetails CommandChannelConnectionDetails => _mapSessionToConnectionDetails[_commandChannel];
+        private ushort CommandLimit { get; }
 
         private bool IsCommandChannelConnected
         {
@@ -98,7 +92,7 @@ namespace SharpSocksServer.ImplantComms
             }
             catch (Exception e)
             {
-                ServerComms.LogMessage($"Error processing session cookie: {e}");
+                Logger.LogMessage($"Error processing session cookie: {e}");
                 return;
             }
 
@@ -120,13 +114,13 @@ namespace SharpSocksServer.ImplantComms
             }
             catch (Exception e)
             {
-                ServerComms.LogError($"Error occured communicating with implant: {e}");
+                Logger.LogError($"Error occured communicating with implant: {e}");
                 httpListenerContext.Response.StatusCode = 500;
                 httpListenerContext.Response.Close();
                 return;
             }
 
-            ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Successfully decrypted message, status: {statusFromCookie}");
+            Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Successfully decrypted message, status: {statusFromCookie}");
 
             List<byte> responseBytes;
             string requestData = null;
@@ -148,13 +142,13 @@ namespace SharpSocksServer.ImplantComms
             }
             catch (Exception e)
             {
-                ServerComms.LogMessage($"{targetId} Error processing payload data: {e}");
+                Logger.LogMessage($"{targetId} Error processing payload data: {e}");
                 CloseTargetConnection(targetId);
                 return;
             }
 
             var decryptedData = string.IsNullOrEmpty(requestData) ? new List<byte>() : Encryption.Decrypt(requestData);
-            ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Received {decryptedData.Count} bytes");
+            Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Received {decryptedData.Count} bytes");
             if (targetId == _commandChannel)
             {
                 responseBytes = HandleCommandChannelRequest(decryptedData, targetId);
@@ -179,7 +173,7 @@ namespace SharpSocksServer.ImplantComms
             }
             catch (Exception e)
             {
-                ServerComms.LogMessage($"[{targetId}][SOCKS Server -> Implant] Error Writing response back to client {e}");
+                Logger.LogMessage($"[{targetId}][SOCKS Server -> Implant] Error Writing response back to client {e}");
                 CloseTargetConnection(targetId);
             }
         }
@@ -189,40 +183,31 @@ namespace SharpSocksServer.ImplantComms
             var targetId = Guid.NewGuid().ToString();
             var task = new XElement((XName)"Task", new XElement((XName)"CreateListener", new XAttribute((XName)"TargetHost", targetHost),
                 new XAttribute((XName)"TargetPort", targetPort), new XAttribute((XName)"SessionID", targetId)));
-            var listenerInst = new Listener(targetHost, targetPort);
-            AddListener(targetId, listenerInst);
+            AddListener(targetId);
             _dataTasks.TryAdd(targetId, new DataTask());
             QueueCommandTask(task);
             return targetId;
         }
 
-        public void CloseAllConnections()
-        {
-            _listeners.Keys.ToList().ForEach((Action<string>)(targetId => CloseTargetConnection(targetId)));
-        }
-
-        public bool CloseTargetConnection(string targetId)
+        public void CloseTargetConnection(string targetId)
         {
             lock (_listeners)
             {
-                if (!_listeners.ContainsKey(targetId))
-                    return false;
-                _listeners[targetId].Status = ListenerStatus.Closing;
+                if (!_listeners.Contains(targetId))
+                    return;
             }
 
-            ServerComms.LogMessage($"[{targetId}][SOCKS Server -> Implant] Queuing command task to shutdown connection in implant");
+            Logger.LogMessage($"[{targetId}][SOCKS Server -> Implant] Queuing command task to shutdown connection in implant");
             QueueCommandTask(new XElement((XName)"Task", new XElement((XName)"CloseListener", new XAttribute((XName)"SessionID", targetId))));
-            return true;
         }
 
-        public bool SendDataToTarget(string listenerGuid, List<byte> payload)
+        public void SendDataToTarget(string listenerGuid, List<byte> payload)
         {
             if (!_dataTasks.ContainsKey(listenerGuid))
-                return false;
+                return;
             var dataTask = _dataTasks[listenerGuid];
             dataTask.Tasks.Enqueue(payload);
             dataTask.Wait.Set();
-            return true;
         }
 
         private List<byte> HandleNetworkChannelRequest(HttpListenerContext httpListenerContext, CommandChannelStatus statusFromCookie, string targetId, List<byte> requestData)
@@ -232,7 +217,7 @@ namespace SharpSocksServer.ImplantComms
             {
                 if (statusFromCookie is CommandChannelStatus.CLOSED)
                 {
-                    ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Implant states connection is closed");
+                    Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Implant states connection is closed");
                     if (_dataTasks.ContainsKey(targetId))
                     {
                         _dataTasks[targetId].Tasks.Clear();
@@ -240,7 +225,7 @@ namespace SharpSocksServer.ImplantComms
                         _dataTasks.TryRemove(targetId, out _);
                     }
 
-                    _listeners.TryRemove(targetId, out _);
+                    _listeners.Remove(targetId);
                     SocksProxy.CloseConnection(targetId);
                     httpListenerContext.Response.StatusCode = 200;
                     httpListenerContext.Response.OutputStream.Close();
@@ -254,12 +239,12 @@ namespace SharpSocksServer.ImplantComms
                     var detailsForTargetId = SocksProxy.GetDetailsForTargetId(targetId);
                     if (!requestData.Any())
                     {
-                        ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Requesting data for connection {detailsForTargetId.HostPort}:{detailsForTargetId.Id}");
+                        Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Requesting data for connection {detailsForTargetId.HostPort}:{detailsForTargetId.Id}");
                     }
                     else
                     {
                         SocksProxy.ReturnDataCallback(targetId, requestData);
-                        ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] {detailsForTargetId.HostPort}:{detailsForTargetId.Id} Received {requestData.Count} bytes ");
+                        Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] {detailsForTargetId.HostPort}:{detailsForTargetId.Id} Received {requestData.Count} bytes ");
                     }
 
                     var dataTask = _dataTasks[targetId];
@@ -276,13 +261,13 @@ namespace SharpSocksServer.ImplantComms
                             responseBytes.AddRange(result);
                     }
 
-                    ServerComms.LogMessage(responseBytes.Count > 0
+                    Logger.LogMessage(responseBytes.Count > 0
                         ? $"[{targetId}][SOCKS Server -> Implant] {detailsForTargetId.HostPort}:{detailsForTargetId.Id} Sending {responseBytes.Count} bytes "
                         : $"[{targetId}][SOCKS Server -> Implant] {detailsForTargetId.HostPort}:{detailsForTargetId.Id} Nothing to send.");
                 }
                 else
                 {
-                    ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Session ID {targetId} is not valid");
+                    Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Session ID {targetId} is not valid");
                     try
                     {
                         httpListenerContext.Response.StatusCode = 404;
@@ -291,14 +276,14 @@ namespace SharpSocksServer.ImplantComms
                     }
                     catch (Exception e)
                     {
-                        ServerComms.LogMessage($"[{targetId}][SOCKS Server -> Implant] Error Writing response back 404 to client: {e}");
+                        Logger.LogMessage($"[{targetId}][SOCKS Server -> Implant] Error Writing response back 404 to client: {e}");
                         return null;
                     }
                 }
             }
             catch (Exception e)
             {
-                ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Error processing response: {e}");
+                Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Error processing response: {e}");
             }
 
             return responseBytes;
@@ -312,13 +297,13 @@ namespace SharpSocksServer.ImplantComms
                 ProcessCommandChannelTime();
                 if (!requestData.Any())
                 {
-                    ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Command channel sending {_commandTasks.Count} tasks");
+                    Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Command channel sending {_commandTasks.Count} tasks");
                 }
                 else
                 {
                     _mapSessionToConnectionDetails[_commandChannel].DataReceived += requestData.Count;
                     if (!_commandTasks.IsEmpty)
-                        ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Command channel payload {requestData.Count} bytes, sending {_commandTasks.Count} tasks");
+                        Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Command channel payload {requestData.Count} bytes, sending {_commandTasks.Count} tasks");
                     ProcessCommandChannelImplantMessage(requestData, targetId);
                 }
 
@@ -331,7 +316,7 @@ namespace SharpSocksServer.ImplantComms
             }
             catch (Exception e)
             {
-                ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Error processing command channel message {e}");
+                Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Error processing command channel message {e}");
             }
 
             return responseBytes;
@@ -348,12 +333,12 @@ namespace SharpSocksServer.ImplantComms
                     return;
                 if (!Enum.TryParse(statusElement.Value, out CommandChannelStatus status))
                 {
-                    ServerComms.LogError($"[{targetId}][Implant -> SOCKS Server] Failed to parse status field as a status: {statusElement.Value}");
+                    Logger.LogError($"[{targetId}][Implant -> SOCKS Server] Failed to parse status field as a status: {statusElement.Value}");
                     return;
                 }
 
                 SocksProxy.NotifyConnection(statusElement.Attribute((XName)"SessionID")?.Value, status);
-                ServerComms.LogMessage($"[{targetId}][Implant -> SOCKS Server] Connection {statusElement.Attribute((XName)"SessionID")?.Value} is {statusElement.Value}");
+                Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Connection {statusElement.Attribute((XName)"SessionID")?.Value} is {statusElement.Value}");
             }));
         }
 
@@ -365,14 +350,9 @@ namespace SharpSocksServer.ImplantComms
             return byteList;
         }
 
-        private void AddListener(string targetId, Listener listenerInst)
+        private void AddListener(string targetId)
         {
-            _listeners.TryAdd(targetId, listenerInst);
-        }
-
-        public bool IsListenerConnected(string sessionId)
-        {
-            return _listeners.ContainsKey(sessionId) && _listeners[sessionId].Status == ListenerStatus.Connected;
+            _listeners.Add(targetId);
         }
 
         private void QueueCommandTask(XElement task)
@@ -401,11 +381,11 @@ namespace SharpSocksServer.ImplantComms
                 if (_lastTimeCommandChannelSeen.HasValue)
                     return;
                 CmdChannelRunningEvent.Set();
-                _mapSessionToConnectionDetails[_commandChannel].UpdateTime = (_lastTimeCommandChannelSeen = DateTime.Now).ToString();
+                (_lastTimeCommandChannelSeen = DateTime.Now).ToString();
             }
             else
             {
-                _mapSessionToConnectionDetails[_commandChannel].UpdateTime = (_lastTimeCommandChannelSeen = DateTime.Now).ToString();
+                (_lastTimeCommandChannelSeen = DateTime.Now).ToString();
             }
         }
     }

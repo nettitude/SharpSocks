@@ -12,11 +12,9 @@ namespace SharpSocksServer.ImplantComms
 
         public ConcurrentQueue<List<byte>> Tasks { get; } = new();
 
-        public object PayloadLocker { get; } = new();
-
         public void DisposeWait()
         {
-            Interlocked.Exchange(ref _wait, null).Dispose();
+            Interlocked.Exchange(ref _wait, null)?.Dispose();
         }
     }
 }

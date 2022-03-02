@@ -11,6 +11,11 @@ namespace SharpSocksServer.Logging
             Console.WriteLine($"[{DateTime.Now}][X] {errorMessage}");
         }
 
+        public void LogError(Exception errorMessage)
+        {
+            Console.WriteLine($"[{DateTime.Now}][X] {errorMessage}");
+        }
+
         public void LogMessage(string message)
         {
             if (_verbose)
@@ -24,13 +29,12 @@ namespace SharpSocksServer.Logging
             Console.WriteLine($"[{DateTime.Now}][!] {message}");
         }
 
-        public bool FailError(string message, Guid errorCode)
+        public bool IsVerboseOn()
         {
-            Console.WriteLine($"[{DateTime.Now}][-] Error Code: {errorCode} Message: {message}");
-            throw new Exception(message ?? "");
+            return _verbose;
         }
 
-        public void BannerMessage(string message)
+        public static void BannerMessage(string message)
         {
             Console.WriteLine(message);
         }
@@ -38,16 +42,6 @@ namespace SharpSocksServer.Logging
         public void SetVerboseOn()
         {
             _verbose = true;
-        }
-
-        public void SetVerboseOff()
-        {
-            _verbose = false;
-        }
-
-        public bool IsVerboseOn()
-        {
-            return _verbose;
         }
     }
 }

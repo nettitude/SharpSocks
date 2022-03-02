@@ -2,7 +2,6 @@
 using SharpSocksCommon.Encryption;
 using SharpSocksImplant.Comms;
 using SharpSocksImplant.Config;
-using SharpSocksImplant.Constants;
 using SharpSocksImplant.Logging;
 
 namespace SharpSocksImplant.Socks
@@ -22,12 +21,6 @@ namespace SharpSocksImplant.Socks
         public IEncryptionHelper Encryptor { get; set; }
 
         public IImplantLog ImplantComms { get; set; }
-
-        public bool SendViaImplant { get; set; }
-
-        public bool SilentlyDie { get; set; }
-
-        public Status Status { get; set; }
 
         public void Initialize()
         {
@@ -68,12 +61,6 @@ namespace SharpSocksImplant.Socks
         {
             _cmdChannel.StopCommandChannel();
             _sockLoopController.StopAll();
-        }
-
-        public void HardStop()
-        {
-            _cmdChannel.StopCommandChannel();
-            _sockLoopController.HardStopAll();
         }
     }
 }

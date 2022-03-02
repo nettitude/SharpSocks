@@ -80,8 +80,7 @@ namespace SharpSocksImplant.Comms
                         if (string.IsNullOrWhiteSpace(encryptedPayload))
                         {
                             ImplantComms.LogError($"[{targetId}][Implant -> SOCKS Server] Encrypted payload was null, it shouldn't be");
-                            if (!_initialConnectionSucceeded.HasValue)
-                                _initialConnectionSucceeded = false;
+                            _initialConnectionSucceeded ??= false;
                             return null;
                         }
                     }
@@ -199,10 +198,8 @@ namespace SharpSocksImplant.Comms
             return true;
         }
 
-        private Uri BuildServerUri(string payload = null)
+        private Uri BuildServerUri()
         {
-            if (_config.Tamper != null)
-                return new Uri(_config.Tamper.TamperUri(_config.CommandServerUi, payload));
             return _config.UrlPaths.Count == 0 ? new Uri(_config.Url, "Upload") : new Uri(_config.Url, _config.UrlPaths[_urlRandomizer.Next(0, _config.UrlPaths.Count)]);
         }
 

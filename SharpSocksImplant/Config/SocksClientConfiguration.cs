@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
-using SharpSocksImplant.Logging;
 
 namespace SharpSocksImplant.Config
 {
@@ -22,11 +21,9 @@ namespace SharpSocksImplant.Config
 
         public short BeaconTime
         {
-            get => GetCmdChannelConfig().CommandBeaconTime;
-            set => GetCmdChannelConfig().CommandBeaconTime = value;
+            get => GetCmdChannelConfig().commandBeaconTime;
+            set => GetCmdChannelConfig().commandBeaconTime = value;
         }
-
-        public string ServerCookie { get; set; }
 
         public string PayloadCookieName { get; set; }
 
@@ -51,17 +48,11 @@ namespace SharpSocksImplant.Config
 
         public bool InsecureTLS { get; set; }
 
-        public string ServerHost { get; set; }
-
         public bool UseProxy { get; set; }
 
         public string UserAgent { get; set; }
 
         public IWebProxy WebProxy { get; set; }
-
-        public IImplantLog ImplantComms { get; set; }
-
-        public ITamper Tamper { get; set; }
 
         public List<string> UrlPaths { get; set; }
 
@@ -86,12 +77,11 @@ namespace SharpSocksImplant.Config
 
         private CommandChannelConfig GetCmdChannelConfig()
         {
-            if (commandChannel == null)
-                lock (_locker)
-                {
-                    if (commandChannel == null)
-                        commandChannel = new CommandChannelConfig();
-                }
+            if (commandChannel != null) return commandChannel;
+            lock (_locker)
+            {
+                commandChannel ??= new CommandChannelConfig();
+            }
 
             return commandChannel;
         }

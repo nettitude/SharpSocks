@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security;
 using System.Security.Cryptography;
 
 namespace SharpSocksCommon.Encryption
 {
-    public class DebugSimpleEncryptor : IEncryptionHelper
+    public class RijndaelCBCCryptor : IEncryptionHelper
     {
         private readonly List<byte> _key = new List<byte>();
 
-        public DebugSimpleEncryptor(string base64Key)
+        public RijndaelCBCCryptor(string base64Key)
         {
             _key.AddRange(Convert.FromBase64String(base64Key));
         }
@@ -49,7 +48,7 @@ namespace SharpSocksCommon.Encryption
 
         public string Initialize()
         {
-            return "USING DEBUG SIMPLE ENCRYPTOR";
+            return null;
         }
     }
 }

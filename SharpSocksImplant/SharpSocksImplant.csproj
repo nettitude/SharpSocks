@@ -52,24 +52,21 @@
     <Reference Include="System.Security" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Comms\CommandChannelController.cs" />
-    <Compile Include="Comms\CommandCommunicationHandler.cs" />
-    <Compile Include="Config\CommandChannelConfig.cs" />
-    <Compile Include="Config\ITamper.cs" />
-    <Compile Include="Config\SocksClientConfiguration.cs" />
-    <Compile Include="Constants\Status.cs" />
-    <Compile Include="Logging\IImplantLog.cs" />
-    <Compile Include="Utils\ConsolePassword.cs" />
-    <Compile Include="Utils\WebClientEx.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Utils\WebExceptionAnalyzer.cs" />
-    <Compile Include="Logging\LogToConsole.cs" />
-    <Compile Include="Integration\PoshCreateProxy.cs" />
-    <Compile Include="Integration\PoshDefaultImplantComms.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Properties\Resources.Designer.cs">
+      <Compile Include="Comms\CommandChannelController.cs"/>
+      <Compile Include="Comms\CommandCommunicationHandler.cs"/>
+      <Compile Include="Comms\WebClientEx.cs">
+          <SubType>Component</SubType>
+      </Compile>
+      <Compile Include="Config\CommandChannelConfig.cs"/>
+      <Compile Include="Config\SocksClientConfiguration.cs"/>
+      <Compile Include="Logging\IImplantLog.cs"/>
+      <Compile Include="Utils\WebExceptionAnalyzer.cs"/>
+      <Compile Include="Logging\LogToConsole.cs"/>
+      <Compile Include="Integration\PoshCreateProxy.cs"/>
+      <Compile Include="Integration\PoshDefaultImplantComms.cs"/>
+      <Compile Include="Program.cs"/>
+      <Compile Include="Properties\AssemblyInfo.cs"/>
+      <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
