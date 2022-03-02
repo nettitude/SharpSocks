@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using SharpSocksServer.ImplantComms;
 using SharpSocksServer.Logging;
 
 namespace SharpSocksServer.SocksServer
 {
-    public class SharpSocksServerController
+    public class ServerController
     {
         public ILogOutput Logger { get; init; }
 
@@ -33,19 +31,6 @@ namespace SharpSocksServer.SocksServer
                 RequestProcessor.CmdChannelRunningEvent.WaitOne();
                 StartSocksInternal(ipToListen, localPort);
             }));
-        }
-
-        public void StartHttp(string httpServerUri)
-        {
-            var httpAsyncListener = new HttpAsyncListener(RequestProcessor, Logger);
-            httpAsyncListener.CreateListener(new Dictionary<string, X509Certificate2>
-            {
-                {
-                    httpServerUri,
-                    null
-                }
-            });
-            Logger.LogMessage($"C2 HTTP processor listening on {httpServerUri}");
         }
 
         private void StartSocksInternal(string ipToListen, ushort localPort)

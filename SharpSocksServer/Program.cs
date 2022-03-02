@@ -2,6 +2,7 @@
 using McMaster.Extensions.CommandLineUtils;
 using SharpSocksCommon.Encryption;
 using SharpSocksServer.Config;
+using SharpSocksServer.HttpServer;
 using SharpSocksServer.ImplantComms;
 using SharpSocksServer.Logging;
 using SharpSocksServer.SocksServer;
@@ -18,7 +19,7 @@ namespace SharpSocksServer
             Console.WriteLine("SharpSocks Server\r\n=================\n");
             try
             {
-                var config = Init(args);
+                var config = ParseArgs(args);
 
                 if (config.Verbose)
                     LOGGER.SetVerboseOn();
@@ -34,7 +35,13 @@ namespace SharpSocksServer
                     PayloadCookieName = config.PayloadCookieName
                 };
 
-                var serverController = new SharpSocksServerController
+                var httpServerController = new HttpServerController
+                {
+                    Logger = LOGGER,
+                    RequestProcessor = requestProcessor
+                };
+
+                var socksServerController = new ServerController
                 {
                     Logger = LOGGER,
                     WaitOnConnect = true,
@@ -42,8 +49,8 @@ namespace SharpSocksServer
                     RequestProcessor = requestProcessor
                 };
 
-                serverController.StartHttp(config.HttpServerURI);
-                serverController.StartSocks(config.SocksIP, config.SocksPort);
+                httpServerController.StartHttp(config.HttpServerURI);
+                socksServerController.StartSocks(config.SocksIP, config.SocksPort);
 
                 LOGGER.LogMessage("Press x to quit\r\n");
                 while ("x" != Console.ReadLine())
@@ -56,7 +63,7 @@ namespace SharpSocksServer
             }
         }
 
-        private static SharpSocksConfig Init(string[] args)
+        private static SharpSocksConfig ParseArgs(string[] args)
         {
             SharpSocksConfig config = null;
             _app = new CommandLineApplication();
