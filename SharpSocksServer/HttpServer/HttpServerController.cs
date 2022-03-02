@@ -7,8 +7,14 @@ namespace SharpSocksServer.HttpServer
 {
     public class HttpServerController
     {
-        public ILogOutput Logger { get; init; }
-        public EncryptedC2RequestProcessor RequestProcessor { get; init; }
+        public HttpServerController(ILogOutput logger, EncryptedC2RequestProcessor requestProcessor)
+        {
+            Logger = logger;
+            RequestProcessor = requestProcessor;
+        }
+
+        private ILogOutput Logger { get; }
+        private EncryptedC2RequestProcessor RequestProcessor { get; }
 
         public void StartHttp(string httpServerUri)
         {

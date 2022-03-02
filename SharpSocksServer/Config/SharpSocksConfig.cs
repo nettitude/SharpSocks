@@ -18,6 +18,8 @@ namespace SharpSocksServer.Config
         public string HttpServerURI { get; private init; }
         public string EncryptionKey { get; private init; }
         public string CommandChannelId { get; private init; }
+        public ushort CommandLimit { get; private init; }
+        public bool WaitOnConnect { get; private init; }
 
         private static string ValidateHttpServer(ILogOutput logger, string serverUri)
         {
@@ -93,7 +95,9 @@ namespace SharpSocksServer.Config
                 PayloadCookieName = optPayloadCookie.Value() ?? "__RequestVerificationToken",
                 SocketTimeout = timeout,
                 Verbose = optVerbose.HasValue(),
-                HttpServerURI = ValidateHttpServer(logger, optHttpServer.Value())
+                HttpServerURI = ValidateHttpServer(logger, optHttpServer.Value()),
+                WaitOnConnect = true,
+                CommandLimit = 20
             };
         }
     }
