@@ -29,25 +29,10 @@ namespace SharpSocksServer
                 var cryptor = new RijndaelCBCCryptor(config.EncryptionKey);
                 LOGGER.LogMessage("Using Rijndael CBC encryption");
 
-                var requestProcessor = new EncryptedC2RequestProcessor(cryptor, config.SessionCookieName, config.CommandChannelId, 20)
-                {
-                    Logger = LOGGER,
-                    PayloadCookieName = config.PayloadCookieName
-                };
+                var requestProcessor = new EncryptedC2RequestProcessor(LOGGER, cryptor, config);
+                var httpServerController = new HttpServerController(LOGGER, requestProcessor);
+                var socksServerController = new ServerController(LOGGER, config, requestProcessor);
 
-                var httpServerController = new HttpServerController
-                {
-                    Logger = LOGGER,
-                    RequestProcessor = requestProcessor
-                };
-
-                var socksServerController = new ServerController
-                {
-                    Logger = LOGGER,
-                    WaitOnConnect = true,
-                    SocketTimeout = config.SocketTimeout,
-                    RequestProcessor = requestProcessor
-                };
 
                 httpServerController.StartHttp(config.HttpServerURI);
                 socksServerController.StartSocks(config.SocksIP, config.SocksPort);
@@ -65,7 +50,6 @@ namespace SharpSocksServer
 
         private static SharpSocksConfig ParseArgs(string[] args)
         {
-            SharpSocksConfig config = null;
             _app = new CommandLineApplication();
             _app.HelpOption();
             var optSocksServerUri = _app.Option("-s|--socksserveruri", "IP:Port for SOCKS to listen on, default is *:43334", CommandOptionType.SingleValue);
@@ -76,6 +60,8 @@ namespace SharpSocksServer
             var optPayloadCookie = _app.Option("-pc|--payloadcookie", "The name of the cookie to pass smaller requests through", CommandOptionType.SingleValue);
             var optSocketTimeout = _app.Option("-st|--socketTimeout", "How long should SOCKS sockets be held open for, default is 30s", CommandOptionType.SingleValue);
             var optVerbose = _app.Option("-v|--verbose", "Verbose error logging", CommandOptionType.NoValue);
+
+            SharpSocksConfig config = null;
             _app.OnExecute(() =>
             {
                 config = SharpSocksConfig.LoadConfig(LOGGER, optSocksServerUri, optSocketTimeout, optCmdChannelId, optEncKey, optSessionCookie, optPayloadCookie,

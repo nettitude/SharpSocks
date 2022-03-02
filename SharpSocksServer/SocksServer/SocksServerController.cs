@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using SharpSocksServer.Config;
 using SharpSocksServer.ImplantComms;
 using SharpSocksServer.Logging;
 
@@ -9,12 +10,18 @@ namespace SharpSocksServer.SocksServer
 {
     public class ServerController
     {
-        public ILogOutput Logger { get; init; }
+        public ServerController(ILogOutput logger, SharpSocksConfig config, EncryptedC2RequestProcessor requestProcessor)
+        {
+            Logger = logger;
+            WaitOnConnect = config.WaitOnConnect;
+            SocketTimeout = config.SocketTimeout;
+            RequestProcessor = requestProcessor;
+        }
 
-        public bool WaitOnConnect { get; init; }
-
-        public uint SocketTimeout { get; init; }
-        public EncryptedC2RequestProcessor RequestProcessor { get; set; }
+        private ILogOutput Logger { get; }
+        private bool WaitOnConnect { get; }
+        private uint SocketTimeout { get; }
+        private EncryptedC2RequestProcessor RequestProcessor { get; }
 
         public void StartSocks(string ipToListen, ushort localPort)
         {

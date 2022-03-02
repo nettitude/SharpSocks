@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using System.Xml.XPath;
 using SharpSocksCommon;
 using SharpSocksCommon.Encryption;
+using SharpSocksServer.Config;
 using SharpSocksServer.Logging;
 using SharpSocksServer.SocksServer;
 
@@ -28,14 +29,16 @@ namespace SharpSocksServer.ImplantComms
         private readonly string _sessionIdName;
         private DateTime? _lastTimeCommandChannelSeen;
 
-        public EncryptedC2RequestProcessor(IEncryptionHelper encryption, string sessionCookieName, string commandChannel, ushort commandLimit = 5)
+        public EncryptedC2RequestProcessor(ILogOutput logger, IEncryptionHelper encryption, SharpSocksConfig config)
         {
             CmdChannelRunningEvent = new ManualResetEvent(false);
+            Logger = logger;
             Encryption = encryption;
-            _sessionIdName = sessionCookieName;
-            _commandChannel = commandChannel;
-            CommandLimit = commandLimit;
-            _mapSessionToConnectionDetails.Add(commandChannel, new ConnectionDetails
+            PayloadCookieName = config.PayloadCookieName;
+            _sessionIdName = config.SessionCookieName;
+            _commandChannel = config.CommandChannelId;
+            CommandLimit = config.CommandLimit;
+            _mapSessionToConnectionDetails.Add(config.CommandChannelId, new ConnectionDetails
             {
                 HostPort = "",
                 DataSent = 0,
@@ -43,13 +46,13 @@ namespace SharpSocksServer.ImplantComms
             });
         }
 
-        public ILogOutput Logger { get; init; }
+        private ILogOutput Logger { get; }
 
         private IEncryptionHelper Encryption { get; }
 
         public ManualResetEvent CmdChannelRunningEvent { get; }
 
-        public string PayloadCookieName { get; init; }
+        private string PayloadCookieName { get; }
 
         private ushort CommandLimit { get; }
 
