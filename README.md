@@ -25,7 +25,13 @@ Options:
   -pc|--payloadcookie  The name of the cookie to pass smaller requests through
   -st|--socketTimeout  How long should SOCKS sockets be held open for, default is 30s
   -v|--verbose         Verbose error logging
+  -p|--pfxpassword     Password to the PFX certificate if using HTTPS
 ```
+
+### TLS
+
+If using HTTPS you will want to replace SharpSocks.pfx with a new certificate, you do this manually or using `New-Cert.ps1`.
+This will prompt you for a password for the PFX file which will need to be passed to SharpSocks with the `-p` option.
 
 ### Client (Implant side)
 
