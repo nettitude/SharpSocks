@@ -17,10 +17,15 @@ namespace SharpSocksServer
             Console.WriteLine("SharpSocks Server\r\n=================\n");
             try
             {
+                var config = ParseArgs(args);
+                if (config == null)
+                {
+                    return;
+                }
                 Console.WriteLine("[*] Initialising...");
 
                 var services = new ServiceCollection()
-                    .AddSingleton(ParseArgs(args))
+                    .AddSingleton(config)
                     .AddSingleton<IEncryptionHelper>(x =>
                         new RijndaelCBCCryptor(x.GetRequiredService<SharpSocksConfig>().EncryptionKey))
                     .AddSingleton<EncryptedC2RequestProcessor>()
