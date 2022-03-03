@@ -66,12 +66,13 @@ namespace SharpSocksServer
             var optPayloadCookie = app.Option("-pc|--payloadcookie", "The name of the cookie to pass smaller requests through", CommandOptionType.SingleValue);
             var optSocketTimeout = app.Option("-st|--socketTimeout", "How long should SOCKS sockets be held open for, default is 30s", CommandOptionType.SingleValue);
             var optVerbose = app.Option("-v|--verbose", "Verbose error logging", CommandOptionType.NoValue);
+            var pfxPassword = app.Option("-p|--pfxpassword", "Password to the PFX certificate if using HTTPS", CommandOptionType.SingleValue);
 
             SharpSocksConfig config = null;
             app.OnExecute(() =>
             {
                 config = SharpSocksConfig.LoadConfig(optSocksServerUri, optSocketTimeout, optCmdChannelId, optEncKey, optSessionCookie, optPayloadCookie,
-                    optVerbose, optHttpServer);
+                    optVerbose, optHttpServer, pfxPassword);
             });
             app.Execute(args);
             return config;

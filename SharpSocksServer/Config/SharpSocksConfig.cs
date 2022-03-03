@@ -19,6 +19,7 @@ namespace SharpSocksServer.Config
         public string CommandChannelId { get; private init; }
         public ushort CommandLimit { get; private init; }
         public bool WaitOnConnect { get; private init; }
+        public string CertificateKey { get; private init; }
 
         private static string ValidateHttpServer(string serverUri)
         {
@@ -52,10 +53,11 @@ namespace SharpSocksServer.Config
         }
 
         public static SharpSocksConfig LoadConfig(CommandOption optSocksServerUri, CommandOption optSocketTimeout, CommandOption optCmdChannelId,
-            CommandOption optEncKey, CommandOption optSessionCookie, CommandOption optPayloadCookie, CommandOption optVerbose, CommandOption optHttpServer)
+            CommandOption optEncKey, CommandOption optSessionCookie, CommandOption optPayloadCookie, CommandOption optVerbose, CommandOption optHttpServer,
+            CommandOption optPfxPassword)
         {
             var socksHostPort = !optSocksServerUri.HasValue() || string.IsNullOrWhiteSpace(optSocksServerUri.Value()) ? "*:43334" : optSocksServerUri.Value();
-            if (string.IsNullOrEmpty(socksHostPort) || !socksHostPort.Contains(":"))
+            if (string.IsNullOrEmpty(socksHostPort) || !socksHostPort.Contains(':'))
             {
                 throw new Exception($"Socks IP not in {socksHostPort} IP:port format");
             }
@@ -96,7 +98,8 @@ namespace SharpSocksServer.Config
                 Verbose = optVerbose.HasValue(),
                 HttpServerURI = ValidateHttpServer(optHttpServer.Value()),
                 WaitOnConnect = true,
-                CommandLimit = 20
+                CommandLimit = 20,
+                CertificateKey = optPfxPassword.Value() ?? "SharpSocks"
             };
         }
     }

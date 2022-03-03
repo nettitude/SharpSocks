@@ -36,14 +36,27 @@
     <ItemGroup>
         <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.1" />
         <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
-        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
-        <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0-preview.1.22076.8" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0-preview.1.22076.8" />
-        <PackageReference Include="System.CodeDom" Version="7.0.0-preview.1.22076.8" />
-        <PackageReference Include="System.ComponentModel.Annotations" Version="6.0.0-preview.4.21253.7" />
-        <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
+        <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2"/>
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0"/>
+        <PackageReference Include="Microsoft.CSharp" Version="4.7.0"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0-preview.1.22076.8"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0-preview.1.22076.8"/>
+        <PackageReference Include="System.CodeDom" Version="7.0.0-preview.1.22076.8"/>
+        <PackageReference Include="System.ComponentModel.Annotations" Version="6.0.0-preview.4.21253.7"/>
+        <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7"/>
+    </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Update="SharpSocks.resx">
+            <Generator>ResXFileCodeGenerator</Generator>
+            <LastGenOutput>SharpSocks.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Update="SharpSocks.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>SharpSocks.resx</DependentUpon>
+        </Compile>
     </ItemGroup>
 </Project>
