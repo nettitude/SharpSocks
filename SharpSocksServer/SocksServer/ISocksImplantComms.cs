@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 
-namespace SharpSocksServer.ImplantComms
+namespace SharpSocksServer.SocksServer
 {
     public interface ISocksImplantComms
     {
@@ -9,5 +10,7 @@ namespace SharpSocksServer.ImplantComms
         void CloseTargetConnection(string targetId);
 
         void SendDataToTarget(string target, List<byte> payload);
+
+        ManualResetEvent GetCommandChannelRunningEvent();
     }
 }

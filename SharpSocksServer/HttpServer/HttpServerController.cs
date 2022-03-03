@@ -1,34 +1,32 @@
-﻿using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
+﻿using Microsoft.AspNetCore.Builder;
 using SharpSocksServer.Config;
-using SharpSocksServer.ImplantComms;
 using SharpSocksServer.Logging;
 
 namespace SharpSocksServer.HttpServer
 {
     public class HttpServerController
     {
-        public HttpServerController(ILogOutput logger, EncryptedC2RequestProcessor requestProcessor, SharpSocksConfig config)
+        private readonly HttpRequestHandler _requestHandler;
+
+        public HttpServerController(ILogOutput logger, SharpSocksConfig config, HttpRequestHandler requestHandler)
         {
+            _requestHandler = requestHandler;
             Logger = logger;
-            RequestProcessor = requestProcessor;
             Config = config;
         }
 
         private ILogOutput Logger { get; }
-        private EncryptedC2RequestProcessor RequestProcessor { get; }
         private SharpSocksConfig Config { get; }
 
         public void StartHttp()
         {
-            var httpAsyncListener = new HttpAsyncListener(RequestProcessor, Logger);
-            httpAsyncListener.CreateListener(new Dictionary<string, X509Certificate2>
-            {
-                {
-                    Config.HttpServerURI,
-                    null
-                }
-            });
+            var builder = WebApplication.CreateBuilder();
+            var app = builder.Build();
+
+            app.MapGet("{uri:regex(/*)}", _requestHandler.HandleRequest);
+            app.MapPost("{uri:regex(/*)}", _requestHandler.HandleRequest);
+
+            app.Run(Config.HttpServerURI);
             Logger.LogMessage($"C2 HTTP processor listening on {Config.HttpServerURI}");
         }
     }

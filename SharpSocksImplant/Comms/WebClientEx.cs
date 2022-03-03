@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 
-namespace SharpSocksImplant.Utils
+namespace SharpSocksImplant.Comms
 {
     public class WebClientEx : WebClient
     {
