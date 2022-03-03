@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using SharpSocksCommon;
 using SharpSocksCommon.Utils;
-using SharpSocksServer.ImplantComms;
 using SharpSocksServer.Logging;
 using SharpSocksServer.SocksServer.Protocol;
 
@@ -47,7 +46,7 @@ namespace SharpSocksServer.SocksServer
 
         private ulong Counter { get; }
 
-        public ISocksImplantComms SocketComms { get; set; }
+        public ISocksImplantComms SocketComms { get; init; }
         public static ILogOutput Logger { get; set; }
 
         public static ConnectionDetails GetDetailsForTargetId(string targetId)

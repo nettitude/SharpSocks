@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <OutputType>Exe</OutputType>
@@ -31,14 +31,19 @@
       <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\SharpSocksCommon\SharpSocksCommon.csproj"/>
+        <ProjectReference Include="..\SharpSocksCommon\SharpSocksCommon.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.0-beta.74"/>
-        <PackageReference Include="Microsoft.CSharp" Version="4.7.0"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0-preview.1.22076.8"/>
-        <PackageReference Include="System.CodeDom" Version="6.0.0-rc.2.21480.5"/>
-        <PackageReference Include="System.ComponentModel.Annotations" Version="6.0.0-preview.4.21253.7"/>
-        <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7"/>
+        <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.1" />
+        <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
+        <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0-preview.1.22076.8" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0-preview.1.22076.8" />
+        <PackageReference Include="System.CodeDom" Version="7.0.0-preview.1.22076.8" />
+        <PackageReference Include="System.ComponentModel.Annotations" Version="6.0.0-preview.4.21253.7" />
+        <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
     </ItemGroup>
 </Project>

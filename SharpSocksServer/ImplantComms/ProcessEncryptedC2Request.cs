@@ -3,14 +3,15 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using Microsoft.AspNetCore.Http;
 using SharpSocksCommon;
 using SharpSocksCommon.Encryption;
 using SharpSocksServer.Config;
+using SharpSocksServer.HttpServer;
 using SharpSocksServer.Logging;
 using SharpSocksServer.SocksServer;
 
@@ -50,7 +51,7 @@ namespace SharpSocksServer.ImplantComms
 
         private IEncryptionHelper Encryption { get; }
 
-        public ManualResetEvent CmdChannelRunningEvent { get; }
+        private ManualResetEvent CmdChannelRunningEvent { get; }
 
         private string PayloadCookieName { get; }
 
@@ -67,16 +68,15 @@ namespace SharpSocksServer.ImplantComms
             }
         }
 
-        public void ProcessRequest(HttpListenerContext httpListenerContext)
+        public void ProcessRequest(HttpContext httpContext)
         {
-            Cookie sessionIdCookie;
+            string sessionIdCookie;
             try
             {
-                sessionIdCookie = httpListenerContext.Request.Cookies[_sessionIdName];
-                if (string.IsNullOrEmpty(sessionIdCookie?.Value))
+                sessionIdCookie = httpContext.Request.Cookies[_sessionIdName];
+                if (string.IsNullOrEmpty(sessionIdCookie))
                 {
-                    httpListenerContext.Response.StatusCode = 401;
-                    httpListenerContext.Response.Close();
+                    httpContext.Response.StatusCode = 401;
                     return;
                 }
             }
@@ -91,7 +91,7 @@ namespace SharpSocksServer.ImplantComms
             try
             {
                 var decryptedSessionCookie = Encoding.UTF8
-                    .GetString((Encryption.Decrypt(sessionIdCookie.Value) ?? throw new Exception($"Can't decrypt session cookie{sessionIdCookie.Value}")).ToArray())
+                    .GetString((Encryption.Decrypt(sessionIdCookie) ?? throw new Exception($"Can't decrypt session cookie{sessionIdCookie}")).ToArray())
                     .Split(':');
                 targetId = decryptedSessionCookie[0];
                 if (!Enum.TryParse(decryptedSessionCookie[1], out statusFromCookie))
@@ -105,8 +105,7 @@ namespace SharpSocksServer.ImplantComms
             catch (Exception e)
             {
                 Logger.LogError($"Error occured communicating with implant: {e}");
-                httpListenerContext.Response.StatusCode = 500;
-                httpListenerContext.Response.Close();
+                httpContext.Response.StatusCode = 500;
                 return;
             }
 
@@ -116,16 +115,16 @@ namespace SharpSocksServer.ImplantComms
             string requestData = null;
             try
             {
-                switch (httpListenerContext.Request.HttpMethod)
+                switch (httpContext.Request.Method)
                 {
                     case "POST":
-                        requestData = new StreamReader(httpListenerContext.Request.InputStream).ReadToEnd();
+                        requestData = new StreamReader(httpContext.Request.Body).ReadToEndAsync().Result;
                         break;
                     case "GET":
                     {
-                        var commandChannelCookie = httpListenerContext.Request.Cookies[PayloadCookieName];
-                        if (!string.IsNullOrWhiteSpace(commandChannelCookie?.Value))
-                            requestData = commandChannelCookie.Value;
+                        var commandChannelCookie = httpContext.Request.Cookies[PayloadCookieName];
+                        if (!string.IsNullOrWhiteSpace(commandChannelCookie))
+                            requestData = commandChannelCookie;
                         break;
                     }
                 }
@@ -145,7 +144,7 @@ namespace SharpSocksServer.ImplantComms
             }
             else
             {
-                responseBytes = HandleNetworkChannelRequest(httpListenerContext, statusFromCookie, targetId, decryptedData);
+                responseBytes = HandleNetworkChannelRequest(httpContext, statusFromCookie, targetId, decryptedData);
                 if (responseBytes == null)
                 {
                     CloseTargetConnection(targetId);
@@ -155,11 +154,11 @@ namespace SharpSocksServer.ImplantComms
 
             try
             {
-                httpListenerContext.Response.StatusCode = 200;
+                httpContext.Response.StatusCode = 200;
                 var source = EncryptPayload(responseBytes);
                 if (source is { Count: > 0 })
-                    httpListenerContext.Response.OutputStream.Write(source.ToArray(), 0, source.Count);
-                httpListenerContext.Response.OutputStream.Close();
+                    httpContext.Response.Body.WriteAsync(source.ToArray(), 0, source.Count);
+                httpContext.Response.Body.Close();
             }
             catch (Exception e)
             {
@@ -200,7 +199,12 @@ namespace SharpSocksServer.ImplantComms
             dataTask.Wait.Set();
         }
 
-        private List<byte> HandleNetworkChannelRequest(HttpListenerContext httpListenerContext, CommandChannelStatus statusFromCookie, string targetId, List<byte> requestData)
+        public ManualResetEvent GetCommandChannelRunningEvent()
+        {
+            return CmdChannelRunningEvent;
+        }
+
+        private List<byte> HandleNetworkChannelRequest(HttpContext httpContext, CommandChannelStatus statusFromCookie, string targetId, List<byte> requestData)
         {
             var responseBytes = new List<byte>();
             try
@@ -217,8 +221,7 @@ namespace SharpSocksServer.ImplantComms
 
                     _listeners.Remove(targetId);
                     SocksProxy.CloseConnection(targetId);
-                    httpListenerContext.Response.StatusCode = 200;
-                    httpListenerContext.Response.OutputStream.Close();
+                    httpContext.Response.StatusCode = 200;
                     return null;
                 }
 
@@ -240,8 +243,7 @@ namespace SharpSocksServer.ImplantComms
                     var dataTask = _dataTasks[targetId];
                     if (!SocksProxy.IsValidSession(targetId))
                     {
-                        httpListenerContext.Response.StatusCode = 200;
-                        httpListenerContext.Response.OutputStream.Close();
+                        httpContext.Response.StatusCode = 200;
                         return null;
                     }
 
@@ -260,8 +262,7 @@ namespace SharpSocksServer.ImplantComms
                     Logger.LogMessage($"[{targetId}][Implant -> SOCKS Server] Session ID {targetId} is not valid");
                     try
                     {
-                        httpListenerContext.Response.StatusCode = 404;
-                        httpListenerContext.Response.OutputStream.Close();
+                        httpContext.Response.StatusCode = 404;
                         return null;
                     }
                     catch (Exception e)

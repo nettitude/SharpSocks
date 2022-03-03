@@ -3,14 +3,13 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using SharpSocksServer.Config;
-using SharpSocksServer.ImplantComms;
 using SharpSocksServer.Logging;
 
 namespace SharpSocksServer.SocksServer
 {
-    public class ServerController
+    public class SocksServerController
     {
-        public ServerController(ILogOutput logger, SharpSocksConfig config, EncryptedC2RequestProcessor requestProcessor)
+        public SocksServerController(ILogOutput logger, SharpSocksConfig config, ISocksImplantComms requestProcessor)
         {
             Logger = logger;
             Config = config;
@@ -19,12 +18,12 @@ namespace SharpSocksServer.SocksServer
 
         private ILogOutput Logger { get; }
         private SharpSocksConfig Config { get; }
-        private EncryptedC2RequestProcessor RequestProcessor { get; }
+        private ISocksImplantComms RequestProcessor { get; }
 
         public void StartSocks()
         {
             Logger.LogMessage($"Wait for Implant TCP Connect before SOCKS Proxy response is {(Config.WaitOnConnect ? "on" : "off")}");
-            if (RequestProcessor.CmdChannelRunningEvent == null)
+            if (RequestProcessor.GetCommandChannelRunningEvent() == null)
             {
                 StartSocksInternal(Config.SocksIP, Config.SocksPort);
                 return;
@@ -33,7 +32,7 @@ namespace SharpSocksServer.SocksServer
             Task.Factory.StartNew((Action)(() =>
             {
                 Logger.LogImportantMessage("Waiting for command channel before starting SOCKS proxy");
-                RequestProcessor.CmdChannelRunningEvent.WaitOne();
+                RequestProcessor.GetCommandChannelRunningEvent().WaitOne();
                 StartSocksInternal(Config.SocksIP, Config.SocksPort);
             }));
         }

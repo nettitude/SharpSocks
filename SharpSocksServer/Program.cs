@@ -18,14 +18,17 @@ namespace SharpSocksServer
             try
             {
                 Console.WriteLine("[*] Initialising...");
-                var config = ParseArgs(args);
 
                 var services = new ServiceCollection()
-                    .AddSingleton(config)
-                    .AddSingleton<IEncryptionHelper>(new RijndaelCBCCryptor(config.EncryptionKey))
+                    .AddSingleton(ParseArgs(args))
+                    .AddSingleton<IEncryptionHelper>(x =>
+                        new RijndaelCBCCryptor(x.GetRequiredService<SharpSocksConfig>().EncryptionKey))
                     .AddSingleton<EncryptedC2RequestProcessor>()
+                    .AddSingleton<IProcessRequest>(x => x.GetRequiredService<EncryptedC2RequestProcessor>())
+                    .AddSingleton<ISocksImplantComms>(x => x.GetRequiredService<EncryptedC2RequestProcessor>())
                     .AddSingleton<HttpServerController>()
-                    .AddSingleton<ServerController>()
+                    .AddSingleton<SocksServerController>()
+                    .AddSingleton<HttpRequestHandler>()
                     .AddSingleton<ILogOutput, ConsoleOutput>();
 
                 var serviceProvider = services.BuildServiceProvider();
@@ -34,11 +37,10 @@ namespace SharpSocksServer
                 SocksProxy.Logger = logger;
 
                 var httpServerController = serviceProvider.GetRequiredService<HttpServerController>();
-                var serverController = serviceProvider.GetRequiredService<ServerController>();
+                var serverController = serviceProvider.GetRequiredService<SocksServerController>();
                 Console.WriteLine("[*] Initialised");
-
-                httpServerController.StartHttp();
                 serverController.StartSocks();
+                httpServerController.StartHttp();
 
                 logger.LogImportantMessage("Press x to quit");
 
@@ -54,24 +56,24 @@ namespace SharpSocksServer
 
         private static SharpSocksConfig ParseArgs(string[] args)
         {
-            var _app = new CommandLineApplication();
-            _app.HelpOption();
-            var optSocksServerUri = _app.Option("-s|--socksserveruri", "IP:Port for SOCKS to listen on, default is *:43334", CommandOptionType.SingleValue);
-            var optCmdChannelId = _app.Option("-c|--cmdid", "Command Channel Identifier, needs to be shared with the server", CommandOptionType.SingleValue);
-            var optHttpServer = _app.Option("-l|--httpserveruri", "Uri to listen on, default is http://127.0.0.1:8081", CommandOptionType.SingleValue);
-            var optEncKey = _app.Option("-k|--encryptionkey", "The encryption key used to secure comms", CommandOptionType.SingleValue);
-            var optSessionCookie = _app.Option("-sc|--sessioncookie", "The name of the cookie to pass the session identifier", CommandOptionType.SingleValue);
-            var optPayloadCookie = _app.Option("-pc|--payloadcookie", "The name of the cookie to pass smaller requests through", CommandOptionType.SingleValue);
-            var optSocketTimeout = _app.Option("-st|--socketTimeout", "How long should SOCKS sockets be held open for, default is 30s", CommandOptionType.SingleValue);
-            var optVerbose = _app.Option("-v|--verbose", "Verbose error logging", CommandOptionType.NoValue);
+            var app = new CommandLineApplication();
+            app.HelpOption();
+            var optSocksServerUri = app.Option("-s|--socksserveruri", "IP:Port for SOCKS to listen on, default is *:43334", CommandOptionType.SingleValue);
+            var optCmdChannelId = app.Option("-c|--cmdid", "Command Channel Identifier, needs to be shared with the server", CommandOptionType.SingleValue);
+            var optHttpServer = app.Option("-l|--httpserveruri", "Uri to listen on, default is http://127.0.0.1:8081", CommandOptionType.SingleValue);
+            var optEncKey = app.Option("-k|--encryptionkey", "The encryption key used to secure comms", CommandOptionType.SingleValue);
+            var optSessionCookie = app.Option("-sc|--sessioncookie", "The name of the cookie to pass the session identifier", CommandOptionType.SingleValue);
+            var optPayloadCookie = app.Option("-pc|--payloadcookie", "The name of the cookie to pass smaller requests through", CommandOptionType.SingleValue);
+            var optSocketTimeout = app.Option("-st|--socketTimeout", "How long should SOCKS sockets be held open for, default is 30s", CommandOptionType.SingleValue);
+            var optVerbose = app.Option("-v|--verbose", "Verbose error logging", CommandOptionType.NoValue);
 
             SharpSocksConfig config = null;
-            _app.OnExecute(() =>
+            app.OnExecute(() =>
             {
                 config = SharpSocksConfig.LoadConfig(optSocksServerUri, optSocketTimeout, optCmdChannelId, optEncKey, optSessionCookie, optPayloadCookie,
                     optVerbose, optHttpServer);
             });
-            _app.Execute(args);
+            app.Execute(args);
             return config;
         }
     }
