@@ -1,7 +1,6 @@
 # SharpSocks
 
 ![SharpSocksServer](https://github.com/nettitude/SharpSocks/actions/workflows/sharpsocks-server.yml/badge.svg)
-![SharpSocksImplant](https://github.com/nettitude/SharpSocks/actions/workflows/sharpsocks-implant.yml/badge.svg)
 
 Tunnellable HTTP/HTTPS socks4a proxy written in C#.
 
