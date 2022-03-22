@@ -46,12 +46,6 @@ namespace SharpSocksServer
                 Console.WriteLine("[*] Initialised");
                 serverController.StartSocks();
                 httpServerController.StartHttp();
-
-                logger.LogImportantMessage("Press x to quit");
-
-                while ("x" != Console.ReadLine())
-                {
-                }
             }
             catch (Exception e)
             {

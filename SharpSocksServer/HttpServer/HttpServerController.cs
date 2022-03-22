@@ -37,10 +37,9 @@ namespace SharpSocksServer.HttpServer
 
             var app = builder.Build();
 
-            app.MapGet("{uri:regex(/*)}", _requestHandler.HandleRequest);
-            app.MapPost("{uri:regex(/*)}", _requestHandler.HandleRequest);
+            app.MapGet("{**url}", _requestHandler.HandleRequest);
+            app.MapPost("{**url}", _requestHandler.HandleRequest);
             app.Run(Config.HttpServerURI);
-            Logger.LogMessage($"C2 HTTP processor listening on {Config.HttpServerURI}");
         }
 
         private X509Certificate2 GetDefaultSelfSignedCertFromResource()
