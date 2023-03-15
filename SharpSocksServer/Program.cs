@@ -60,7 +60,7 @@ namespace SharpSocksServer
             var optSocksServerUri = app.Option("-s|--socksserveruri", "IP:Port for SOCKS to listen on, default is *:43334", CommandOptionType.SingleValue);
             var optCmdChannelId = app.Option("-c|--cmdid", "Command Channel Identifier, needs to be shared with the server", CommandOptionType.SingleValue);
             var optHttpServer = app.Option("-l|--httpserveruri", "Uri to listen on, default is http://127.0.0.1:8081", CommandOptionType.SingleValue);
-            var optEncKey = app.Option("-k|--encryptionkey", "The encryption key used to secure comms", CommandOptionType.SingleValue);
+            var optEncKey = app.Option("-k|--encryptionkey", "The encryption key used to secure comms (32 bytes)", CommandOptionType.SingleValue);
             var optSessionCookie = app.Option("-sc|--sessioncookie", "The name of the cookie to pass the session identifier", CommandOptionType.SingleValue);
             var optPayloadCookie = app.Option("-pc|--payloadcookie", "The name of the cookie to pass smaller requests through", CommandOptionType.SingleValue);
             var optSocketTimeout = app.Option("-st|--socketTimeout", "How long should SOCKS sockets be held open for, default is 30s", CommandOptionType.SingleValue);

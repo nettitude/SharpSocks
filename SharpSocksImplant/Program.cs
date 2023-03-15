@@ -81,7 +81,7 @@ namespace SharpSocksImplant
                 },
                 {
                     "k=|encryption-key=",
-                    "The encryption key, leave blank to be asked",
+                    "The encryption key (32 byte), leave blank to be asked",
                     v => key = v
                 },
                 {
